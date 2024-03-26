@@ -6,11 +6,5 @@ package.edition = "2021"
 package.license = "Apache-2.0"
 
 members = [
-  "rust-connector-sdk",
+  "crates/*",
 ]
-
-[profile.release]
-debug = true
-
-[profile.bench]
-debug = true
