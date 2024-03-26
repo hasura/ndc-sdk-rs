@@ -228,8 +228,11 @@ where
     <Setup::Connector as Connector>::Configuration: Clone,
     <Setup::Connector as Connector>::State: Clone,
 {
-    init_tracing(&serve_command.service_name, &serve_command.otlp_endpoint)
-        .expect("Unable to initialize tracing");
+    init_tracing(
+        serve_command.service_name.as_deref(),
+        serve_command.otlp_endpoint.as_deref(),
+    )
+    .expect("Unable to initialize tracing");
 
     let server_state = init_server_state(setup, serve_command.configuration).await?;
 
