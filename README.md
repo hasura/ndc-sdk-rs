@@ -1,35 +1,4 @@
-# Hasura Native Data Connector Hub: ndc-hub
-
-This repository provides:
-
-1. a registry of connectors and
-2. resources to help build connectors to connect new and custom data sources to
-   Hasura.
-
-This allows Hasura users to instantly get a powerful Hasura GraphQL API
-(pagination, filtering, sorting, relationships) with granular RLS style
-authorization out of the box on any data-source (DBs, APIs).
-
-> [!WARNING] NDC Hub (the set of connectors and the SDK to build new
-> connectors) is currently in beta, and subject to large changes. It is
-> shared here to provide an early preview of what can be expected for connector
-> development & deployment in the future, and feedback is welcome! If you have
-> any comments, please create an issue.
-
-## Registry
-
-The connectors currently supported all have an entry in the [registry](/registry) folder.
-
-## SDK & Guides
-
-### Connector Developer Guide
-
-The best way to get started developing Hasura native data connectors is to
-[read the specification](http://hasura.github.io/ndc-spec/) and familiarise
-yourself with the [reference
-implementation](https://github.com/hasura/ndc-spec/tree/main/ndc-reference).
-
-### Rust SDK
+# Hasura NDC SDK for Rust
 
 This repository provides a Rust crate to aid development of [Hasura Native Data
 Connectors](https://hasura.github.io/ndc-spec/). Developers can implement a
@@ -46,7 +15,6 @@ the current specification:
 #### Getting Started with the SDK
 
 ```sh
-cd rust-connector-sdk
 cargo build
 ```
 
