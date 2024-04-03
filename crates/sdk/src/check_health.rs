@@ -11,13 +11,12 @@ pub enum HealthCheckError {
 impl std::fmt::Display for HealthCheckError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            HealthCheckError::ParseError(inner) => write!(f, "URL parse error: {}", inner),
-            HealthCheckError::RequestError(inner) => write!(f, "request error: {}", inner),
+            HealthCheckError::ParseError(inner) => write!(f, "URL parse error: {inner}"),
+            HealthCheckError::RequestError(inner) => write!(f, "request error: {inner}"),
             HealthCheckError::UnsuccessfulResponse { status, body } => {
                 write!(
                     f,
-                    "unsuccessful response with status code: {}\nbody:\n{}",
-                    status, body
+                    "unsuccessful response with status code: {status}\nbody:\n{body}"
                 )
             }
         }

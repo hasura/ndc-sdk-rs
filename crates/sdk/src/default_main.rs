@@ -242,7 +242,7 @@ where
     );
 
     let address = net::SocketAddr::new(serve_command.host, serve_command.port);
-    println!("Starting server on {}", address);
+    println!("Starting server on {address}");
     axum::Server::bind(&address)
         .serve(router.into_make_service())
         .with_graceful_shutdown(async {
@@ -250,7 +250,7 @@ where
             let sigint = async {
                 tokio::signal::ctrl_c()
                     .await
-                    .expect("unable to install signal handler")
+                    .expect("unable to install signal handler");
             };
             // wait for a SIGTERM, i.e. a normal `kill` command
             #[cfg(unix)]
@@ -263,7 +263,7 @@ where
             // block until either of the above happens
             #[cfg(unix)]
             tokio::select! {
-                _ = sigint => (),
+                () = sigint => (),
                 _ = sigterm => (),
             }
             #[cfg(windows)]
@@ -316,14 +316,14 @@ where
                         name = "Request failure",
                         body = %err,
                         error = true,
-                    )
+                    );
                 }),
         )
         .with_state(state);
 
     let expected_auth_header: Option<HeaderValue> =
         service_token_secret.and_then(|service_token_secret| {
-            let expected_bearer = format!("Bearer {}", service_token_secret);
+            let expected_bearer = format!("Bearer {service_token_secret}");
             HeaderValue::from_str(&expected_bearer).ok()
         });
 
@@ -371,7 +371,7 @@ where
 async fn get_metrics<C: Connector>(
     State(state): State<ServerState<C>>,
 ) -> Result<String, (StatusCode, Json<ErrorResponse>)> {
-    routes::get_metrics::<C>(&state.configuration, &state.state, state.metrics)
+    routes::get_metrics::<C>(&state.configuration, &state.state, &state.metrics)
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
