@@ -250,7 +250,7 @@ where
             let sigint = async {
                 tokio::signal::ctrl_c()
                     .await
-                    .expect("unable to install signal handler")
+                    .expect("unable to install signal handler");
             };
             // wait for a SIGTERM, i.e. a normal `kill` command
             #[cfg(unix)]
@@ -316,7 +316,7 @@ where
                         name = "Request failure",
                         body = %err,
                         error = true,
-                    )
+                    );
                 }),
         )
         .with_state(state);
