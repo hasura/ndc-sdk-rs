@@ -12,7 +12,7 @@ pub async fn main() -> ExitCode {
     match default_main::<Example>().await {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             ExitCode::FAILURE
         }
     }

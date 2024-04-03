@@ -242,7 +242,7 @@ where
     );
 
     let address = net::SocketAddr::new(serve_command.host, serve_command.port);
-    println!("Starting server on {}", address);
+    println!("Starting server on {address}");
     axum::Server::bind(&address)
         .serve(router.into_make_service())
         .with_graceful_shutdown(async {
@@ -323,7 +323,7 @@ where
 
     let expected_auth_header: Option<HeaderValue> =
         service_token_secret.and_then(|service_token_secret| {
-            let expected_bearer = format!("Bearer {}", service_token_secret);
+            let expected_bearer = format!("Bearer {service_token_secret}");
             HeaderValue::from_str(&expected_bearer).ok()
         });
 

@@ -63,7 +63,7 @@ impl Display for InvalidNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}, at ", self.file_path.display())?;
         for segment in &self.node_path {
-            write!(f, ".{}", segment)?;
+            write!(f, ".{segment}")?;
         }
         write!(f, ": {}", self.message)?;
         Ok(())
