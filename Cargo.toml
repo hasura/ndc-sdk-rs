@@ -8,3 +8,6 @@ package.license = "Apache-2.0"
 members = [
   "crates/*",
 ]
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
