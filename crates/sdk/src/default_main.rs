@@ -263,7 +263,7 @@ where
             // block until either of the above happens
             #[cfg(unix)]
             tokio::select! {
-                _ = sigint => (),
+                () = sigint => (),
                 _ = sigterm => (),
             }
             #[cfg(windows)]
