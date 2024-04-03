@@ -371,7 +371,7 @@ where
 async fn get_metrics<C: Connector>(
     State(state): State<ServerState<C>>,
 ) -> Result<String, (StatusCode, Json<ErrorResponse>)> {
-    routes::get_metrics::<C>(&state.configuration, &state.state, state.metrics)
+    routes::get_metrics::<C>(&state.configuration, &state.state, &state.metrics)
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {

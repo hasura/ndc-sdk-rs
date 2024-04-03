@@ -10,7 +10,7 @@ use crate::{
 pub fn get_metrics<C: Connector>(
     configuration: &C::Configuration,
     state: &C::State,
-    metrics: Registry,
+    metrics: &Registry,
 ) -> Result<String, (StatusCode, Json<models::ErrorResponse>)> {
     let encoder = TextEncoder::new();
 
