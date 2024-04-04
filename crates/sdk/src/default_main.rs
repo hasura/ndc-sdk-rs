@@ -445,9 +445,7 @@ mod ndc_test_commands {
                 .map_err(|err| ndc_test::error::Error::OtherError(err))
         }
 
-        async fn get_schema(
-            &self,
-        ) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
+        async fn get_schema(&self) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
             match C::get_schema(&self.configuration).await {
                 Ok(response) => response
                     .into_value::<Box<dyn std::error::Error + Send + Sync>>()
