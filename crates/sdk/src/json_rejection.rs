@@ -2,7 +2,7 @@
 
 use axum::extract;
 use axum::response::IntoResponse;
-use ndc_client::models;
+use ndc_models as models;
 
 pub struct JsonRejection(extract::rejection::JsonRejection);
 

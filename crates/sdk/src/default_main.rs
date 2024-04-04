@@ -15,7 +15,7 @@ use clap::{Parser, Subcommand};
 use prometheus::Registry;
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 
-use ndc_client::models::{
+use ndc_models::{
     CapabilitiesResponse, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse,
     QueryRequest, QueryResponse, SchemaResponse,
 };
@@ -438,7 +438,7 @@ mod ndc_test_commands {
     impl<C: Connector> ndc_test::connector::Connector for ConnectorAdapter<C> {
         async fn get_capabilities(
             &self,
-        ) -> Result<ndc_client::models::CapabilitiesResponse, ndc_test::error::Error> {
+        ) -> Result<ndc_models::CapabilitiesResponse, ndc_test::error::Error> {
             C::get_capabilities()
                 .await
                 .into_value::<Box<dyn std::error::Error + Send + Sync>>()
@@ -447,7 +447,7 @@ mod ndc_test_commands {
 
         async fn get_schema(
             &self,
-        ) -> Result<ndc_client::models::SchemaResponse, ndc_test::error::Error> {
+        ) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
             match C::get_schema(&self.configuration).await {
                 Ok(response) => response
                     .into_value::<Box<dyn std::error::Error + Send + Sync>>()
@@ -458,8 +458,8 @@ mod ndc_test_commands {
 
         async fn query(
             &self,
-            request: ndc_client::models::QueryRequest,
-        ) -> Result<ndc_client::models::QueryResponse, ndc_test::error::Error> {
+            request: ndc_models::QueryRequest,
+        ) -> Result<ndc_models::QueryResponse, ndc_test::error::Error> {
             match C::query(&self.configuration, &self.state, request)
                 .await
                 .and_then(JsonResponse::into_value)
@@ -471,8 +471,8 @@ mod ndc_test_commands {
 
         async fn mutation(
             &self,
-            request: ndc_client::models::MutationRequest,
-        ) -> Result<ndc_client::models::MutationResponse, ndc_test::error::Error> {
+            request: ndc_models::MutationRequest,
+        ) -> Result<ndc_models::MutationResponse, ndc_test::error::Error> {
             match C::mutation(&self.configuration, &self.state, request)
                 .await
                 .and_then(JsonResponse::into_value)

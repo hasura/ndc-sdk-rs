@@ -6,4 +6,4 @@ pub mod json_response;
 pub mod routes;
 pub mod tracing;
 
-pub use ndc_client::models;
+pub use ndc_models as models;

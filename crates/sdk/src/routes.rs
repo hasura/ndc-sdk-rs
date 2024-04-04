@@ -1,5 +1,5 @@
 use axum::{http::StatusCode, Json};
-use ndc_client::models;
+use ndc_models as models;
 use prometheus::{Registry, TextEncoder};
 
 use crate::{
