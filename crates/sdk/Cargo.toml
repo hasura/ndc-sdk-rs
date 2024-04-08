@@ -18,14 +18,14 @@ path = "bin/main.rs"
 [features]
 default = ["native-tls", "ndc-test"]
 
-native-tls = ["ndc-client/native-tls", "ndc-test/native-tls", "reqwest/native-tls"]
-rustls = ["ndc-client/rustls", "ndc-test/rustls", "reqwest/rustls"]
+native-tls = ["reqwest/native-tls"]
+rustls = ["reqwest/rustls"]
 
 ndc-test = ["dep:ndc-test"]
 
 [dependencies]
-ndc-client = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.1" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.1", optional = true }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.2" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.2", optional = true }
 
 async-trait = "0.1.79"
 axum = "0.6.20"

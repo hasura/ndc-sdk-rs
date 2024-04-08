@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
-use ndc_client::models;
+use ndc_models as models;
 use serde::Serialize;
 use thiserror::Error;
 

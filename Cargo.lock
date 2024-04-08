@@ -933,20 +933,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "ndc-client"
-version = "0.1.1"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.1#17c61946cc9a3ff6dcee1d535af33141213b639a"
+name = "ndc-models"
+version = "0.1.2"
+source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.2#6e7d12a31787d5f618099a42ddc0bea786438c00"
 dependencies = [
- "async-trait",
  "indexmap 2.2.6",
- "opentelemetry",
- "reqwest",
  "schemars",
  "serde",
- "serde_derive",
  "serde_json",
  "serde_with",
- "url",
 ]
 
 [[package]]
@@ -961,7 +956,7 @@ dependencies = [
  "clap",
  "http",
  "mime",
- "ndc-client",
+ "ndc-models",
  "ndc-test",
  "opentelemetry",
  "opentelemetry-http",
@@ -983,14 +978,14 @@ dependencies = [
 
 [[package]]
 name = "ndc-test"
-version = "0.1.1"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.1#17c61946cc9a3ff6dcee1d535af33141213b639a"
+version = "0.1.2"
+source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.2#6e7d12a31787d5f618099a42ddc0bea786438c00"
 dependencies = [
  "async-trait",
  "clap",
  "colorful",
  "indexmap 2.2.6",
- "ndc-client",
+ "ndc-models",
  "rand",
  "reqwest",
  "semver",
@@ -998,6 +993,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "url",
 ]
 
 [[package]]
