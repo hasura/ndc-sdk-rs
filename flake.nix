@@ -11,7 +11,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/master";
+    nixpkgs.url = "github:NixOS/nixpkgs?branch=nixos-unstable";
 
     crane = {
       url = "github:ipetkov/crane";
