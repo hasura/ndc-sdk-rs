@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use axum::body::{Body, BoxBody};
 use http::{Request, Response};
+use opentelemetry::propagation::composite::TextMapCompositePropagator;
 use opentelemetry_otlp::WithExportConfig;
 use tracing::Span;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -13,9 +14,10 @@ pub fn init_tracing(
     service_name: Option<&str>,
     otlp_endpoint: Option<&str>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    opentelemetry::global::set_text_map_propagator(
-        opentelemetry_sdk::propagation::TraceContextPropagator::new(),
-    );
+    opentelemetry::global::set_text_map_propagator(TextMapCompositePropagator::new(vec![
+        Box::new(opentelemetry_sdk::propagation::TraceContextPropagator::new()),
+        Box::new(opentelemetry_zipkin::Propagator::new()),
+    ]));
 
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
