@@ -41,7 +41,7 @@ of requests across services.
 To enable tracing you must:
 
 - use the SDK option `--otlp-endpoint` e.g. `http://localhost:4317`,
-- set the SDK environment variable `OTLP_ENDPOINT`, or
+- set the SDK environment variable `OTEL_EXPORTER_OTLP_ENDPOINT`, or
 - set the `tracing` environment variable `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
 
 For additional service information you can:

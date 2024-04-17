@@ -39,6 +39,7 @@ opentelemetry-http = "0.11.0"
 opentelemetry-otlp = { version = "0.15.0", features = ["reqwest-client"] }
 opentelemetry-semantic-conventions = "0.14.0"
 opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
+opentelemetry-zipkin = "0.20.0"
 prometheus = "0.13.3"
 reqwest = "0.11.27"
 serde = { version = "1.0.197", features = ["derive"] }
