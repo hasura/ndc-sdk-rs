@@ -44,6 +44,8 @@ To enable tracing you must:
 - set the SDK environment variable `OTEL_EXPORTER_OTLP_ENDPOINT`, or
 - set the `tracing` environment variable `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
 
+The exporter uses gRPC protocol by default. To use HTTP protocol you must set `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
+
 For additional service information you can:
 
 - Set `OTEL_SERVICE_NAME` e.g. `ndc_hub_example`
