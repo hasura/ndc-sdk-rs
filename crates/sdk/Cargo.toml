@@ -19,7 +19,7 @@ path = "bin/main.rs"
 default = ["native-tls", "ndc-test"]
 
 native-tls = ["reqwest/native-tls"]
-rustls = ["reqwest/rustls"]
+rustls = ["reqwest/rustls", "opentelemetry-http/reqwest-rustls"]
 
 ndc-test = ["dep:ndc-test"]
 
@@ -35,7 +35,7 @@ clap = { version = "4.5.4", features = ["derive", "env"] }
 http = "0.2"
 mime = "0.3.17"
 opentelemetry = "0.22.0"
-opentelemetry-http = "0.11.0"
+opentelemetry-http = "0.11.1"
 opentelemetry-otlp = { version = "0.15.0", features = ["reqwest-client", "gzip-tonic", "tls", "tls-roots", "http-proto"] }
 opentelemetry-semantic-conventions = "0.14.0"
 opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
