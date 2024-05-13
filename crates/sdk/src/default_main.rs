@@ -304,6 +304,10 @@ where
         .route("/query/explain", post(post_query_explain::<C>))
         .route("/mutation", post(post_mutation::<C>))
         .route("/mutation/explain", post(post_mutation_explain::<C>))
+        .with_state(state)
+        .layer(ValidateRequestHeaderLayer::custom(auth_handler(
+            service_token_secret,
+        )))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_span)
@@ -319,10 +323,6 @@ where
                     );
                 }),
         )
-        .with_state(state)
-        .layer(ValidateRequestHeaderLayer::custom(auth_handler(
-            service_token_secret,
-        )))
 }
 
 fn auth_handler(
@@ -336,10 +336,10 @@ fn auth_handler(
 
     move |request| {
         // Validate the request
-        let auth_header = request.headers().get("Authorization").cloned();
+        let auth_header = request.headers().get("Authorization");
 
         // NOTE: The comparison should probably be more permissive to allow for whitespace, etc.
-        if auth_header == expected_auth_header {
+        if auth_header == expected_auth_header.as_ref() {
             return Ok(());
         }
 
