@@ -487,6 +487,7 @@ mod ndc_test_commands {
         let test_configuration = ndc_test::configuration::TestConfiguration {
             seed: command.seed.map(|s| s.as_bytes().try_into()).transpose()?,
             snapshots_dir: command.snapshots_dir,
+            options: test_options(),
             gen_config: ndc_test::configuration::TestGenerationConfiguration::default(),
         };
 
@@ -512,8 +513,13 @@ mod ndc_test_commands {
         let connector = make_connector_adapter(setup, command.configuration).await?;
         let mut reporter = (ConsoleReporter::new(), TestResults::default());
 
-        ndc_test::test_snapshots_in_directory(&connector, &mut reporter, command.snapshots_dir)
-            .await;
+        ndc_test::test_snapshots_in_directory(
+            &test_options(),
+            &connector,
+            &mut reporter,
+            command.snapshots_dir,
+        )
+        .await;
 
         if !reporter.1.failures.is_empty() {
             println!();
@@ -567,6 +573,12 @@ mod ndc_test_commands {
             configuration,
             state,
         })
+    }
+
+    fn test_options() -> ndc_test::configuration::TestOptions {
+        ndc_test::configuration::TestOptions {
+            validate_responses: true,
+        }
     }
 }
 

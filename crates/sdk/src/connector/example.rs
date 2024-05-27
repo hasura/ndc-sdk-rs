@@ -57,6 +57,10 @@ impl Connector for Example {
                     variables: None,
                     aggregates: None,
                     explain: None,
+                    nested_fields: models::NestedFieldCapabilities {
+                        filter_by: None,
+                        order_by: None,
+                    },
                 },
                 mutation: models::MutationCapabilities {
                     transactional: None,
