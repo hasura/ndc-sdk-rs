@@ -50,13 +50,17 @@ impl Connector for Example {
 
     async fn get_capabilities() -> JsonResponse<models::CapabilitiesResponse> {
         models::CapabilitiesResponse {
-            version: "0.1.1".into(),
+            version: "0.1.3".into(),
             capabilities: models::Capabilities {
                 relationships: None,
                 query: models::QueryCapabilities {
                     variables: None,
                     aggregates: None,
                     explain: None,
+                    nested_fields: models::NestedFieldCapabilities {
+                        filter_by: None,
+                        order_by: None,
+                    },
                 },
                 mutation: models::MutationCapabilities {
                     transactional: None,
