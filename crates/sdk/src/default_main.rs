@@ -492,7 +492,9 @@ mod ndc_test_commands {
             seed: command.seed.map(|s| s.as_bytes().try_into()).transpose()?,
             snapshots_dir: command.snapshots_dir,
             gen_config: ndc_test::configuration::TestGenerationConfiguration::default(),
-            options: ndc_test::configuration::TestOptions { validate_responses: !command.no_validate_responses }
+            options: ndc_test::configuration::TestOptions {
+                validate_responses: !command.no_validate_responses,
+            },
         };
 
         let connector = make_connector_adapter(setup, command.configuration).await?;
@@ -517,10 +519,17 @@ mod ndc_test_commands {
         let connector = make_connector_adapter(setup, command.configuration).await?;
         let mut reporter = (ConsoleReporter::new(), TestResults::default());
 
-        let options = ndc_test::configuration::TestOptions { validate_responses: !command.no_validate_responses };
+        let options = ndc_test::configuration::TestOptions {
+            validate_responses: !command.no_validate_responses,
+        };
 
-        ndc_test::test_snapshots_in_directory(&options, &connector, &mut reporter, command.snapshots_dir)
-            .await;
+        ndc_test::test_snapshots_in_directory(
+            &options,
+            &connector,
+            &mut reporter,
+            command.snapshots_dir,
+        )
+        .await;
 
         if !reporter.1.failures.is_empty() {
             println!();
