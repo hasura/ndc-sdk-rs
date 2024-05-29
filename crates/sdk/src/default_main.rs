@@ -84,6 +84,8 @@ struct TestCommand {
     configuration: PathBuf,
     #[arg(long, value_name = "DIRECTORY", env = "HASURA_SNAPSHOTS_DIR")]
     snapshots_dir: Option<PathBuf>,
+    #[arg(long, help = "Turn off validations for query responses")]
+    no_validate_responses: bool,
 }
 
 #[derive(Clone, Parser)]
@@ -92,6 +94,8 @@ struct ReplayCommand {
     configuration: PathBuf,
     #[arg(long, value_name = "DIRECTORY", env = "HASURA_SNAPSHOTS_DIR")]
     snapshots_dir: PathBuf,
+    #[arg(long, help = "Turn off validations for query responses")]
+    no_validate_responses: bool,
 }
 
 #[derive(Clone, Parser)]
@@ -487,6 +491,9 @@ mod ndc_test_commands {
         let test_configuration = ndc_test::configuration::TestConfiguration {
             seed: command.seed.map(|s| s.as_bytes().try_into()).transpose()?,
             snapshots_dir: command.snapshots_dir,
+            options: ndc_test::configuration::TestOptions {
+                validate_responses: !command.no_validate_responses,
+            },
             gen_config: ndc_test::configuration::TestGenerationConfiguration::default(),
         };
 
@@ -510,10 +517,18 @@ mod ndc_test_commands {
         command: super::ReplayCommand,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let connector = make_connector_adapter(setup, command.configuration).await?;
+        let options = ndc_test::configuration::TestOptions {
+            validate_responses: !command.no_validate_responses,
+        };
         let mut reporter = (ConsoleReporter::new(), TestResults::default());
 
-        ndc_test::test_snapshots_in_directory(&connector, &mut reporter, command.snapshots_dir)
-            .await;
+        ndc_test::test_snapshots_in_directory(
+            &options,
+            &connector,
+            &mut reporter,
+            command.snapshots_dir,
+        )
+        .await;
 
         if !reporter.1.failures.is_empty() {
             println!();
