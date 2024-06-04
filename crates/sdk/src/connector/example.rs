@@ -50,7 +50,7 @@ impl Connector for Example {
 
     async fn get_capabilities() -> JsonResponse<models::CapabilitiesResponse> {
         models::CapabilitiesResponse {
-            version: "0.1.3".into(),
+            version: "0.1.4".into(),
             capabilities: models::Capabilities {
                 relationships: None,
                 query: models::QueryCapabilities {
@@ -120,5 +120,32 @@ impl Connector for Example {
         _request: models::QueryRequest,
     ) -> Result<JsonResponse<models::QueryResponse>, QueryError> {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+    use std::path::PathBuf;
+
+    use axum_test_helper::TestClient;
+    use http::StatusCode;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn capabilities_match_ndc_spec_version() -> Result<(), Box<dyn Error + Send + Sync>> {
+        let state =
+            crate::default_main::init_server_state(Example::default(), PathBuf::new()).await?;
+        let app = crate::default_main::create_router::<Example>(state, None);
+
+        let client = TestClient::new(app);
+        let response = client.get("/capabilities").send().await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body: ndc_models::CapabilitiesResponse = response.json().await;
+        assert_eq!(body.version, ndc_models::VERSION);
+        Ok(())
     }
 }
