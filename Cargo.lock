@@ -953,8 +953,8 @@ dependencies = [
 
 [[package]]
 name = "ndc-models"
-version = "0.1.3"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.4#622c643b4f0b6bbe4601c0f065d6d93a4bd3e9db"
+version = "0.1.4"
+source = "git+http://github.com/hasura/ndc-spec.git?branch=samirtalwar/bump#ba1559e131f5cc8d0563fbbc947508ec17dcd91e"
 dependencies = [
  "indexmap 2.2.6",
  "schemars",
@@ -998,8 +998,8 @@ dependencies = [
 
 [[package]]
 name = "ndc-test"
-version = "0.1.3"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.4#622c643b4f0b6bbe4601c0f065d6d93a4bd3e9db"
+version = "0.1.4"
+source = "git+http://github.com/hasura/ndc-spec.git?branch=samirtalwar/bump#ba1559e131f5cc8d0563fbbc947508ec17dcd91e"
 dependencies = [
  "async-trait",
  "clap",
