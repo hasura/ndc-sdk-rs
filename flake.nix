@@ -7,7 +7,7 @@
 # the line, `use flake`.
 
 {
-  description = "ndc-hub";
+  description = "ndc-sdk-rs";
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
