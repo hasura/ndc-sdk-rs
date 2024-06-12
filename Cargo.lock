@@ -953,8 +953,8 @@ dependencies = [
 
 [[package]]
 name = "ndc-models"
-version = "0.1.3"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.3#b9316d206a6aece470531937f6e1ea9223e88122"
+version = "0.1.4"
+source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.4#20172e3b2552b78d16dbafcd047f559ced420309"
 dependencies = [
  "indexmap 2.2.6",
  "schemars",
@@ -965,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "ndc-sdk"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "async-trait",
  "axum",
@@ -998,8 +998,8 @@ dependencies = [
 
 [[package]]
 name = "ndc-test"
-version = "0.1.3"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.3#b9316d206a6aece470531937f6e1ea9223e88122"
+version = "0.1.4"
+source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.1.4#20172e3b2552b78d16dbafcd047f559ced420309"
 dependencies = [
  "async-trait",
  "clap",
