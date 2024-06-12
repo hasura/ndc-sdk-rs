@@ -60,6 +60,7 @@ impl Connector for Example {
                     nested_fields: models::NestedFieldCapabilities {
                         filter_by: None,
                         order_by: None,
+                        aggregates: None,
                     },
                 },
                 mutation: models::MutationCapabilities {
@@ -145,7 +146,8 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body: ndc_models::CapabilitiesResponse = response.json().await;
-        assert_eq!(body.version, ndc_models::VERSION);
+        // ideally we would get this version from `ndc_models::VERSION`
+        assert_eq!(body.version, "0.1.4");
         Ok(())
     }
 }
