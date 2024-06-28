@@ -3,6 +3,9 @@ use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use http::StatusCode;
 use ndc_models as models;
 use serde::Serialize;
 use thiserror::Error;
@@ -120,7 +123,40 @@ pub enum InitializationError {
 #[derive(Debug, Error)]
 pub enum FetchMetricsError {
     #[error("error fetching metrics: {0}")]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
+}
+
+impl FetchMetricsError {
+    pub fn new(err: Box<dyn Error + Send + Sync>) -> Self {
+        Self::Other(err, serde_json::Value::Null)
+    }
+    #[must_use]
+    pub fn with_details(self, details: serde_json::Value) -> Self {
+        match self {
+            Self::Other(err, _) => Self::Other(err, details),
+        }
+    }
+}
+
+impl From<Box<dyn Error + Send + Sync>> for FetchMetricsError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl IntoResponse for FetchMetricsError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Other(err, details) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(models::ErrorResponse {
+                    message: err.to_string(),
+                    details,
+                }),
+            ),
+        }
+        .into_response()
+    }
 }
 
 /// Errors which occur when checking connector health.
@@ -129,7 +165,40 @@ pub enum FetchMetricsError {
 #[derive(Debug, Error)]
 pub enum HealthError {
     #[error("error checking health status: {0}")]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
+}
+
+impl HealthError {
+    pub fn new(err: Box<dyn Error + Send + Sync>) -> Self {
+        Self::Other(err, serde_json::Value::Null)
+    }
+    #[must_use]
+    pub fn with_details(self, details: serde_json::Value) -> Self {
+        match self {
+            Self::Other(err, _) => Self::Other(err, details),
+        }
+    }
+}
+
+impl From<Box<dyn Error + Send + Sync>> for HealthError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl IntoResponse for HealthError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Other(err, details) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(models::ErrorResponse {
+                    message: err.to_string(),
+                    details,
+                }),
+            ),
+        }
+        .into_response()
+    }
 }
 
 /// Errors which occur when retrieving the connector schema.
@@ -138,7 +207,40 @@ pub enum HealthError {
 #[derive(Debug, Error)]
 pub enum SchemaError {
     #[error("error retrieving the schema: {0}")]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
+}
+
+impl SchemaError {
+    pub fn new(err: Box<dyn Error + Send + Sync>) -> Self {
+        Self::Other(err, serde_json::Value::Null)
+    }
+    #[must_use]
+    pub fn with_details(self, details: serde_json::Value) -> Self {
+        match self {
+            Self::Other(err, _) => Self::Other(err, details),
+        }
+    }
+}
+
+impl From<Box<dyn Error + Send + Sync>> for SchemaError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl IntoResponse for SchemaError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Other(err, details) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(models::ErrorResponse {
+                    message: err.to_string(),
+                    details,
+                }),
+            ),
+        }
+        .into_response()
+    }
 }
 
 /// Errors which occur when executing a query.
@@ -149,20 +251,83 @@ pub enum QueryError {
     /// The request was invalid or did not match the
     /// requirements of the specification. This indicates
     /// an error with the client.
-    #[error("invalid request: {0}")]
-    InvalidRequest(String),
+    #[error("invalid request: {}", .0.message)]
+    InvalidRequest(models::ErrorResponse),
     /// The request was well formed but was unable to be
     /// followed due to semantic errors. This indicates
     /// an error with the client.
-    #[error("unprocessable content: {0}")]
-    UnprocessableContent(String),
+    #[error("unprocessable content: {}", .0.message)]
+    UnprocessableContent(models::ErrorResponse),
     /// The request relies on an unsupported feature or
     /// capability. This may indicate an error with the client,
     /// or just an unimplemented feature.
-    #[error("unsupported operation: {0}")]
-    UnsupportedOperation(String),
+    #[error("unsupported operation: {}", .0.message)]
+    UnsupportedOperation(models::ErrorResponse),
     #[error("error executing query: {0}")]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
+}
+
+impl QueryError {
+    pub fn new(err: Box<dyn Error + Send + Sync>) -> Self {
+        Self::Other(err, serde_json::Value::Null)
+    }
+    pub fn new_invalid_request<T: Into<String>>(message: T) -> Self {
+        Self::InvalidRequest(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_unprocessable_content<T: Into<String>>(message: T) -> Self {
+        Self::UnprocessableContent(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_unsupported_operation<T: Into<String>>(message: T) -> Self {
+        Self::UnsupportedOperation(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    #[must_use]
+    pub fn with_details(self, details: serde_json::Value) -> Self {
+        match self {
+            Self::InvalidRequest(models::ErrorResponse { message, .. }) => {
+                Self::InvalidRequest(models::ErrorResponse { message, details })
+            }
+            Self::UnprocessableContent(models::ErrorResponse { message, .. }) => {
+                Self::UnprocessableContent(models::ErrorResponse { message, details })
+            }
+            Self::UnsupportedOperation(models::ErrorResponse { message, .. }) => {
+                Self::UnsupportedOperation(models::ErrorResponse { message, details })
+            }
+            Self::Other(err, _) => Self::Other(err, details),
+        }
+    }
+}
+
+impl From<Box<dyn Error + Send + Sync>> for QueryError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl IntoResponse for QueryError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::InvalidRequest(err) => (StatusCode::BAD_REQUEST, Json(err)),
+            Self::UnprocessableContent(err) => (StatusCode::UNPROCESSABLE_ENTITY, Json(err)),
+            Self::UnsupportedOperation(err) => (StatusCode::NOT_IMPLEMENTED, Json(err)),
+            Self::Other(err, details) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(models::ErrorResponse {
+                    message: err.to_string(),
+                    details,
+                }),
+            ),
+        }
+        .into_response()
+    }
 }
 
 /// Errors which occur when explaining a query.
@@ -173,20 +338,83 @@ pub enum ExplainError {
     /// The request was invalid or did not match the
     /// requirements of the specification. This indicates
     /// an error with the client.
-    #[error("invalid request: {0}")]
-    InvalidRequest(String),
+    #[error("invalid request: {}", .0.message)]
+    InvalidRequest(models::ErrorResponse),
     /// The request was well formed but was unable to be
     /// followed due to semantic errors. This indicates
     /// an error with the client.
-    #[error("unprocessable content: {0}")]
-    UnprocessableContent(String),
+    #[error("unprocessable content: {}", .0.message)]
+    UnprocessableContent(models::ErrorResponse),
     /// The request relies on an unsupported feature or
     /// capability. This may indicate an error with the client,
     /// or just an unimplemented feature.
-    #[error("unsupported operation: {0}")]
-    UnsupportedOperation(String),
+    #[error("unsupported operation: {}", .0.message)]
+    UnsupportedOperation(models::ErrorResponse),
     #[error("explain error: {0}")]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
+}
+
+impl ExplainError {
+    pub fn new(err: Box<dyn Error + Send + Sync>) -> Self {
+        Self::Other(err, serde_json::Value::Null)
+    }
+    pub fn new_invalid_request<T: Into<String>>(message: T) -> Self {
+        Self::InvalidRequest(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_unprocessable_content<T: Into<String>>(message: T) -> Self {
+        Self::UnprocessableContent(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_unsupported_operation<T: Into<String>>(message: T) -> Self {
+        Self::UnsupportedOperation(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    #[must_use]
+    pub fn with_details(self, details: serde_json::Value) -> Self {
+        match self {
+            Self::InvalidRequest(models::ErrorResponse { message, .. }) => {
+                Self::InvalidRequest(models::ErrorResponse { message, details })
+            }
+            Self::UnprocessableContent(models::ErrorResponse { message, .. }) => {
+                Self::UnprocessableContent(models::ErrorResponse { message, details })
+            }
+            Self::UnsupportedOperation(models::ErrorResponse { message, .. }) => {
+                Self::UnsupportedOperation(models::ErrorResponse { message, details })
+            }
+            Self::Other(err, _) => Self::Other(err, details),
+        }
+    }
+}
+
+impl From<Box<dyn Error + Send + Sync>> for ExplainError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl IntoResponse for ExplainError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::InvalidRequest(err) => (StatusCode::BAD_REQUEST, Json(err)),
+            Self::UnprocessableContent(err) => (StatusCode::UNPROCESSABLE_ENTITY, Json(err)),
+            Self::UnsupportedOperation(err) => (StatusCode::NOT_IMPLEMENTED, Json(err)),
+            Self::Other(err, details) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(models::ErrorResponse {
+                    message: err.to_string(),
+                    details,
+                }),
+            ),
+        }
+        .into_response()
+    }
 }
 
 /// Errors which occur when executing a mutation.
@@ -197,28 +425,111 @@ pub enum MutationError {
     /// The request was invalid or did not match the
     /// requirements of the specification. This indicates
     /// an error with the client.
-    #[error("invalid request: {0}")]
-    InvalidRequest(String),
+    #[error("invalid request: {}", .0.message)]
+    InvalidRequest(models::ErrorResponse),
     /// The request was well formed but was unable to be
     /// followed due to semantic errors. This indicates
     /// an error with the client.
-    #[error("unprocessable content: {0}")]
-    UnprocessableContent(String),
+    #[error("unprocessable content: {}", .0.message)]
+    UnprocessableContent(models::ErrorResponse),
     /// The request relies on an unsupported feature or
     /// capability. This may indicate an error with the client,
     /// or just an unimplemented feature.
-    #[error("unsupported operation: {0}")]
-    UnsupportedOperation(String),
+    #[error("unsupported operation: {}", .0.message)]
+    UnsupportedOperation(models::ErrorResponse),
     /// The request would result in a conflicting state
     /// in the underlying data store.
-    #[error("mutation would result in a conflicting state: {0}")]
-    Conflict(String),
+    #[error("mutation would result in a conflicting state: {}", .0.message)]
+    Conflict(models::ErrorResponse),
     /// The request would violate a constraint in the
     /// underlying data store.
-    #[error("mutation violates constraint: {0}")]
-    ConstraintNotMet(String),
+    #[error("mutation violates constraint: {}", .0.message)]
+    ConstraintNotMet(models::ErrorResponse),
     #[error("error executing mutation: {0}")]
-    Other(#[from] Box<dyn Error + Send + Sync>),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
+}
+
+impl MutationError {
+    pub fn new(err: Box<dyn Error + Send + Sync>) -> Self {
+        Self::Other(err, serde_json::Value::Null)
+    }
+    pub fn new_invalid_request<T: Into<String>>(message: T) -> Self {
+        Self::InvalidRequest(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_unprocessable_content<T: Into<String>>(message: T) -> Self {
+        Self::UnprocessableContent(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_unsupported_operation<T: Into<String>>(message: T) -> Self {
+        Self::UnsupportedOperation(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_conflict<T: Into<String>>(message: T) -> Self {
+        Self::Conflict(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    pub fn new_constraint_not_met<T: Into<String>>(message: T) -> Self {
+        Self::ConstraintNotMet(models::ErrorResponse {
+            message: message.into(),
+            details: serde_json::Value::Null,
+        })
+    }
+    #[must_use]
+    pub fn with_details(self, details: serde_json::Value) -> Self {
+        match self {
+            Self::InvalidRequest(models::ErrorResponse { message, .. }) => {
+                Self::InvalidRequest(models::ErrorResponse { message, details })
+            }
+            Self::UnprocessableContent(models::ErrorResponse { message, .. }) => {
+                Self::UnprocessableContent(models::ErrorResponse { message, details })
+            }
+            Self::UnsupportedOperation(models::ErrorResponse { message, .. }) => {
+                Self::UnsupportedOperation(models::ErrorResponse { message, details })
+            }
+            Self::Conflict(models::ErrorResponse { message, .. }) => {
+                Self::Conflict(models::ErrorResponse { message, details })
+            }
+            Self::ConstraintNotMet(models::ErrorResponse { message, .. }) => {
+                Self::ConstraintNotMet(models::ErrorResponse { message, details })
+            }
+            Self::Other(err, _) => Self::Other(err, details),
+        }
+    }
+}
+
+impl From<Box<dyn Error + Send + Sync>> for MutationError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
+        Self::new(value)
+    }
+}
+
+impl IntoResponse for MutationError {
+    fn into_response(self) -> Response {
+        match self {
+            Self::InvalidRequest(err) => (StatusCode::BAD_REQUEST, Json(err)),
+            Self::UnprocessableContent(err) => (StatusCode::UNPROCESSABLE_ENTITY, Json(err)),
+            Self::UnsupportedOperation(err) => (StatusCode::NOT_IMPLEMENTED, Json(err)),
+            Self::Conflict(err) => (StatusCode::CONFLICT, Json(err)),
+            Self::ConstraintNotMet(err) => (StatusCode::FORBIDDEN, Json(err)),
+            Self::Other(err, details) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(models::ErrorResponse {
+                    message: err.to_string(),
+                    details,
+                }),
+            ),
+        }
+        .into_response()
+    }
 }
 
 /// Connectors using this library should implement this trait.

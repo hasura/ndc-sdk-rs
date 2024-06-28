@@ -12,7 +12,7 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
-use prometheus::Registry;
+use prometheus::{Registry, TextEncoder};
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 
 use ndc_models::{
@@ -21,10 +21,12 @@ use ndc_models::{
 };
 
 use crate::check_health;
-use crate::connector::{Connector, ConnectorSetup};
+use crate::connector::{
+    Connector, ConnectorSetup, ExplainError, FetchMetricsError, HealthError, MutationError,
+    QueryError, SchemaError,
+};
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
-use crate::routes;
 use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
@@ -373,57 +375,64 @@ fn auth_handler(
 
 async fn get_metrics<C: Connector>(
     State(state): State<ServerState<C>>,
-) -> Result<String, (StatusCode, Json<ErrorResponse>)> {
-    routes::get_metrics::<C>(&state.configuration, &state.state, &state.metrics)
+) -> Result<String, FetchMetricsError> {
+    let encoder = TextEncoder::new();
+
+    C::fetch_metrics(&state.configuration, &state.state)?;
+
+    let metric_families = &state.metrics.gather();
+
+    encoder
+        .encode_to_string(metric_families)
+        .map_err(|_| FetchMetricsError::new("Unable to encode metrics".into()))
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
-    routes::get_capabilities::<C>().await
+    C::get_capabilities().await
 }
 
-async fn get_health<C: Connector>(
-    State(state): State<ServerState<C>>,
-) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
-    routes::get_health::<C>(&state.configuration, &state.state).await
+async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<(), HealthError> {
+    C::health_check(&state.configuration, &state.state).await
 }
 
 async fn get_schema<C: Connector>(
     State(state): State<ServerState<C>>,
-) -> Result<JsonResponse<SchemaResponse>, (StatusCode, Json<ErrorResponse>)> {
-    routes::get_schema::<C>(&state.configuration).await
+) -> Result<JsonResponse<SchemaResponse>, SchemaError> {
+    C::get_schema(&state.configuration).await
 }
 
 async fn post_query_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
-) -> Result<JsonResponse<ExplainResponse>, (StatusCode, Json<ErrorResponse>)> {
-    routes::post_query_explain::<C>(&state.configuration, &state.state, request).await
+) -> Result<JsonResponse<ExplainResponse>, ExplainError> {
+    C::query_explain(&state.configuration, &state.state, request).await
 }
 
 async fn post_mutation_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
-) -> Result<JsonResponse<ExplainResponse>, (StatusCode, Json<ErrorResponse>)> {
-    routes::post_mutation_explain::<C>(&state.configuration, &state.state, request).await
+) -> Result<JsonResponse<ExplainResponse>, ExplainError> {
+    C::mutation_explain(&state.configuration, &state.state, request).await
 }
 
 async fn post_mutation<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
-) -> Result<JsonResponse<MutationResponse>, (StatusCode, Json<ErrorResponse>)> {
-    routes::post_mutation::<C>(&state.configuration, &state.state, request).await
+) -> Result<JsonResponse<MutationResponse>, MutationError> {
+    C::mutation(&state.configuration, &state.state, request).await
 }
 
 async fn post_query<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
-) -> Result<JsonResponse<QueryResponse>, (StatusCode, Json<ErrorResponse>)> {
-    routes::post_query::<C>(&state.configuration, &state.state, request).await
+) -> Result<JsonResponse<QueryResponse>, QueryError> {
+    C::query(&state.configuration, &state.state, request).await
 }
 
 #[cfg(feature = "ndc-test")]
 mod ndc_test_commands {
     use super::{BenchCommand, Connector, ConnectorSetup};
+    use crate::connector::QueryError;
     use crate::json_response::JsonResponse;
     use async_trait::async_trait;
     use ndc_test::reporter::{ConsoleReporter, TestResults};
@@ -461,13 +470,17 @@ mod ndc_test_commands {
             &self,
             request: ndc_models::QueryRequest,
         ) -> Result<ndc_models::QueryResponse, ndc_test::error::Error> {
-            match C::query(&self.configuration, &self.state, request)
+            Ok(C::query(&self.configuration, &self.state, request)
                 .await
                 .and_then(JsonResponse::into_value)
-            {
-                Ok(response) => Ok(response),
-                Err(err) => Err(ndc_test::error::Error::OtherError(err.into())),
-            }
+                .map_err(|err| match err {
+                    QueryError::InvalidRequest(err)
+                    | QueryError::UnprocessableContent(err)
+                    | QueryError::UnsupportedOperation(err) => {
+                        ndc_test::error::Error::OtherError(err.message.into())
+                    }
+                    QueryError::Other(err, _) => ndc_test::error::Error::OtherError(err),
+                })?)
         }
 
         async fn mutation(
