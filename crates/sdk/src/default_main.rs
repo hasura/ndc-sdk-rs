@@ -384,7 +384,7 @@ async fn get_metrics<C: Connector>(
 
     encoder
         .encode_to_string(metric_families)
-        .map_err(|_| FetchMetricsError::new("Unable to encode metrics".into()))
+        .map_err(|_| FetchMetricsError::new("Unable to encode metrics"))
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
@@ -453,15 +453,15 @@ mod ndc_test_commands {
         ) -> Result<ndc_models::CapabilitiesResponse, ndc_test::error::Error> {
             C::get_capabilities()
                 .await
-                .into_value::<Box<dyn std::error::Error + Send + Sync>>()
-                .map_err(|err| ndc_test::error::Error::OtherError(err))
+                .into_value::<Box<dyn std::error::Error>>()
+                .map_err(ndc_test::error::Error::OtherError)
         }
 
         async fn get_schema(&self) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
             match C::get_schema(&self.configuration).await {
                 Ok(response) => response
-                    .into_value::<Box<dyn std::error::Error + Send + Sync>>()
-                    .map_err(|err| ndc_test::error::Error::OtherError(err)),
+                    .into_value::<Box<dyn std::error::Error>>()
+                    .map_err(ndc_test::error::Error::OtherError),
                 Err(err) => Err(ndc_test::error::Error::OtherError(err.into())),
             }
         }
@@ -487,13 +487,10 @@ mod ndc_test_commands {
             &self,
             request: ndc_models::MutationRequest,
         ) -> Result<ndc_models::MutationResponse, ndc_test::error::Error> {
-            match C::mutation(&self.configuration, &self.state, request)
+            Ok(C::mutation(&self.configuration, &self.state, request)
                 .await
                 .and_then(JsonResponse::into_value)
-            {
-                Ok(response) => Ok(response),
-                Err(err) => Err(ndc_test::error::Error::OtherError(err.into())),
-            }
+                .map_err(|err| ndc_test::error::Error::OtherError(err.into()))?)
         }
     }
 
