@@ -1,7 +1,12 @@
-use std::error::Error;
-use std::net;
-use std::path::{Path, PathBuf};
-
+use crate::check_health;
+use crate::connector::{
+    Connector, ConnectorSetup, ExplainError, FetchMetricsError, HealthError, MutationError,
+    QueryError, SchemaError,
+};
+use crate::fetch_metrics::fetch_metrics;
+use crate::json_rejection::JsonRejection;
+use crate::json_response::JsonResponse;
+use crate::tracing::{init_tracing, make_span, on_response};
 use axum::{
     body::Body,
     extract::State,
@@ -12,22 +17,15 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
-use prometheus::{Registry, TextEncoder};
-use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
-
 use ndc_models::{
     CapabilitiesResponse, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse,
     QueryRequest, QueryResponse, SchemaResponse,
 };
-
-use crate::check_health;
-use crate::connector::{
-    Connector, ConnectorSetup, ExplainError, FetchMetricsError, HealthError, MutationError,
-    QueryError, SchemaError,
-};
-use crate::json_rejection::JsonRejection;
-use crate::json_response::JsonResponse;
-use crate::tracing::{init_tracing, make_span, on_response};
+use prometheus::Registry;
+use std::error::Error;
+use std::net;
+use std::path::{Path, PathBuf};
+use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 
 #[derive(Parser)]
 struct CliArgs {
@@ -376,15 +374,7 @@ fn auth_handler(
 async fn get_metrics<C: Connector>(
     State(state): State<ServerState<C>>,
 ) -> Result<String, FetchMetricsError> {
-    let encoder = TextEncoder::new();
-
-    C::fetch_metrics(&state.configuration, &state.state)?;
-
-    let metric_families = &state.metrics.gather();
-
-    encoder
-        .encode_to_string(metric_families)
-        .map_err(|_| FetchMetricsError::new("Unable to encode metrics"))
+    fetch_metrics::<C>(&state.configuration, &state.state, &state.metrics)
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
