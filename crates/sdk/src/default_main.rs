@@ -378,7 +378,12 @@ async fn get_metrics<C: Connector>(
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
-    C::get_capabilities().await
+    let capabilities = C::get_capabilities().await;
+    CapabilitiesResponse {
+        version: ndc_models::VERSION.into(),
+        capabilities,
+    }
+    .into()
 }
 
 async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<(), HealthError> {
@@ -441,7 +446,7 @@ mod ndc_test_commands {
         async fn get_capabilities(
             &self,
         ) -> Result<ndc_models::CapabilitiesResponse, ndc_test::error::Error> {
-            C::get_capabilities()
+            super::get_capabilities::<C>()
                 .await
                 .into_value::<Box<dyn std::error::Error>>()
                 .map_err(ndc_test::error::Error::OtherError)
