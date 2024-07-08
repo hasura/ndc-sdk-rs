@@ -381,8 +381,9 @@ async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> 
     let capabilities = C::get_capabilities().await;
     CapabilitiesResponse {
         version: ndc_models::VERSION.into(),
-        capabilities
-    }.into()
+        capabilities,
+    }
+    .into()
 }
 
 async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<(), HealthError> {
