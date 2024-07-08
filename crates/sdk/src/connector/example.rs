@@ -48,28 +48,24 @@ impl Connector for Example {
         Ok(())
     }
 
-    async fn get_capabilities() -> JsonResponse<models::CapabilitiesResponse> {
-        models::CapabilitiesResponse {
-            version: "0.1.4".into(),
-            capabilities: models::Capabilities {
-                relationships: None,
-                query: models::QueryCapabilities {
-                    variables: None,
+    async fn get_capabilities() -> models::Capabilities {
+        models::Capabilities {
+            relationships: None,
+            query: models::QueryCapabilities {
+                variables: None,
+                aggregates: None,
+                explain: None,
+                nested_fields: models::NestedFieldCapabilities {
+                    filter_by: None,
+                    order_by: None,
                     aggregates: None,
-                    explain: None,
-                    nested_fields: models::NestedFieldCapabilities {
-                        filter_by: None,
-                        order_by: None,
-                        aggregates: None,
-                    },
-                },
-                mutation: models::MutationCapabilities {
-                    transactional: None,
-                    explain: None,
                 },
             },
+            mutation: models::MutationCapabilities {
+                transactional: None,
+                explain: None,
+            },
         }
-        .into()
     }
 
     async fn get_schema(
