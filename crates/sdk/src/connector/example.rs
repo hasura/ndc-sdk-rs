@@ -142,8 +142,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body: ndc_models::CapabilitiesResponse = response.json().await;
-        // ideally we would get this version from `ndc_models::VERSION`
-        assert_eq!(body.version, "0.1.4");
+        assert_eq!(body.version, ndc_models::VERSION);
         Ok(())
     }
 }
