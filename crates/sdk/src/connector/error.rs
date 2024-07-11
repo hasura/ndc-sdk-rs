@@ -118,11 +118,11 @@ pub enum InitializationError {
 #[derive(Debug, Error)]
 pub enum FetchMetricsError {
     #[error("error fetching metrics: {0}")]
-    Other(Box<dyn Error>, serde_json::Value),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
 }
 
 impl FetchMetricsError {
-    pub fn new<E: Into<Box<dyn Error>>>(err: E) -> Self {
+    pub fn new<E: Into<Box<dyn Error + Send + Sync>>>(err: E) -> Self {
         Self::Other(err.into(), serde_json::Value::Null)
     }
     #[must_use]
@@ -154,11 +154,11 @@ impl IntoResponse for FetchMetricsError {
 #[derive(Debug, Error)]
 pub enum HealthError {
     #[error("error checking health status: {0}")]
-    Other(Box<dyn Error>, serde_json::Value),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
 }
 
 impl HealthError {
-    pub fn new<E: Into<Box<dyn Error>>>(err: E) -> Self {
+    pub fn new<E: Into<Box<dyn Error + Send + Sync>>>(err: E) -> Self {
         Self::Other(err.into(), serde_json::Value::Null)
     }
     #[must_use]
@@ -190,11 +190,11 @@ impl IntoResponse for HealthError {
 #[derive(Debug, Error)]
 pub enum SchemaError {
     #[error("error retrieving the schema: {0}")]
-    Other(Box<dyn Error>, serde_json::Value),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
 }
 
 impl SchemaError {
-    pub fn new<E: Into<Box<dyn Error>>>(err: E) -> Self {
+    pub fn new<E: Into<Box<dyn Error + Send + Sync>>>(err: E) -> Self {
         Self::Other(err.into(), serde_json::Value::Null)
     }
     #[must_use]
@@ -205,8 +205,8 @@ impl SchemaError {
     }
 }
 
-impl From<Box<dyn Error>> for SchemaError {
-    fn from(value: Box<dyn Error>) -> Self {
+impl From<Box<dyn Error + Send + Sync>> for SchemaError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
         Self::new(value)
     }
 }
@@ -247,11 +247,11 @@ pub enum QueryError {
     #[error("unsupported operation: {}", .0.message)]
     UnsupportedOperation(models::ErrorResponse),
     #[error("error executing query: {0}")]
-    Other(Box<dyn Error>, serde_json::Value),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
 }
 
 impl QueryError {
-    pub fn new<E: Into<Box<dyn Error>>>(err: E) -> Self {
+    pub fn new<E: Into<Box<dyn Error + Send + Sync>>>(err: E) -> Self {
         Self::Other(err.into(), serde_json::Value::Null)
     }
     pub fn new_invalid_request<T: ToString>(message: &T) -> Self {
@@ -289,8 +289,8 @@ impl QueryError {
     }
 }
 
-impl From<Box<dyn Error>> for QueryError {
-    fn from(value: Box<dyn Error>) -> Self {
+impl From<Box<dyn Error + Send + Sync>> for QueryError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
         Self::new(value)
     }
 }
@@ -334,11 +334,11 @@ pub enum ExplainError {
     #[error("unsupported operation: {}", .0.message)]
     UnsupportedOperation(models::ErrorResponse),
     #[error("explain error: {0}")]
-    Other(Box<dyn Error>, serde_json::Value),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
 }
 
 impl ExplainError {
-    pub fn new<E: Into<Box<dyn Error>>>(err: E) -> Self {
+    pub fn new<E: Into<Box<dyn Error + Send + Sync>>>(err: E) -> Self {
         Self::Other(err.into(), serde_json::Value::Null)
     }
     pub fn new_invalid_request<T: ToString>(message: &T) -> Self {
@@ -376,8 +376,8 @@ impl ExplainError {
     }
 }
 
-impl From<Box<dyn Error>> for ExplainError {
-    fn from(value: Box<dyn Error>) -> Self {
+impl From<Box<dyn Error + Send + Sync>> for ExplainError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
         Self::new(value)
     }
 }
@@ -429,11 +429,11 @@ pub enum MutationError {
     #[error("mutation violates constraint: {}", .0.message)]
     ConstraintNotMet(models::ErrorResponse),
     #[error("error executing mutation: {0}")]
-    Other(Box<dyn Error>, serde_json::Value),
+    Other(Box<dyn Error + Send + Sync>, serde_json::Value),
 }
 
 impl MutationError {
-    pub fn new<E: Into<Box<dyn Error>>>(err: E) -> Self {
+    pub fn new<E: Into<Box<dyn Error + Send + Sync>>>(err: E) -> Self {
         Self::Other(err.into(), serde_json::Value::Null)
     }
     pub fn new_invalid_request<T: ToString>(message: &T) -> Self {
@@ -489,8 +489,8 @@ impl MutationError {
     }
 }
 
-impl From<Box<dyn Error>> for MutationError {
-    fn from(value: Box<dyn Error>) -> Self {
+impl From<Box<dyn Error + Send + Sync>> for MutationError {
+    fn from(value: Box<dyn Error + Send + Sync>) -> Self {
         Self::new(value)
     }
 }

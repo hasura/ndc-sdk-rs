@@ -448,15 +448,15 @@ mod ndc_test_commands {
         ) -> Result<ndc_models::CapabilitiesResponse, ndc_test::error::Error> {
             super::get_capabilities::<C>()
                 .await
-                .into_value::<Box<dyn std::error::Error>>()
-                .map_err(ndc_test::error::Error::OtherError)
+                .into_value::<Box<dyn std::error::Error + Send + Sync>>()
+                .map_err(|e| ndc_test::error::Error::OtherError(e))
         }
 
         async fn get_schema(&self) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
             match C::get_schema(&self.configuration).await {
                 Ok(response) => response
-                    .into_value::<Box<dyn std::error::Error>>()
-                    .map_err(ndc_test::error::Error::OtherError),
+                    .into_value::<Box<dyn std::error::Error + Send + Sync>>()
+                    .map_err(|e| ndc_test::error::Error::OtherError(e)),
                 Err(err) => Err(ndc_test::error::Error::OtherError(err.into())),
             }
         }
