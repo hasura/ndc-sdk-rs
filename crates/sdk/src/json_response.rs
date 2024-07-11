@@ -27,7 +27,9 @@ impl<A: (for<'de> serde::Deserialize<'de>)> JsonResponse<A> {
     ///
     /// This is only intended for testing and compatibility. If it lives on a
     /// critical path, we recommend you avoid it.
-    pub(crate) fn into_value<E: From<Box<dyn std::error::Error + Send + Sync>>>(self) -> Result<A, E> {
+    pub(crate) fn into_value<E: From<Box<dyn std::error::Error + Send + Sync>>>(
+        self,
+    ) -> Result<A, E> {
         match self {
             Self::Value(value) => Ok(value),
             Self::Serialized(bytes) => {
