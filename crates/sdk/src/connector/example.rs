@@ -55,10 +55,16 @@ impl Connector for Example {
                 variables: None,
                 aggregates: None,
                 explain: None,
+                offset: None,
                 nested_fields: models::NestedFieldCapabilities {
                     filter_by: None,
                     order_by: None,
                     aggregates: None,
+                    nested_collections: None,
+                },
+                exists: ndc_models::ExistsCapabilities {
+                    named_scopes: None,
+                    unrelated: None,
                 },
             },
             mutation: models::MutationCapabilities {
@@ -83,6 +89,7 @@ impl Connector for Example {
             procedures: vec![],
             object_types: BTreeMap::new(),
             scalar_types: BTreeMap::new(),
+            capabilities: None,
         }
         .into())
     }

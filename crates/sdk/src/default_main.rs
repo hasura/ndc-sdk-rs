@@ -18,8 +18,8 @@ use axum::{
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
 use ndc_models::{
-    CapabilitiesResponse, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse,
-    QueryRequest, QueryResponse, SchemaResponse,
+    Capabilities, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse, QueryRequest,
+    QueryResponse, SchemaResponse,
 };
 use prometheus::Registry;
 use std::error::Error;
@@ -377,13 +377,8 @@ async fn get_metrics<C: Connector>(
     fetch_metrics::<C>(&state.configuration, &state.state, &state.metrics)
 }
 
-async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
-    let capabilities = C::get_capabilities().await;
-    CapabilitiesResponse {
-        version: ndc_models::VERSION.into(),
-        capabilities,
-    }
-    .into()
+async fn get_capabilities<C: Connector>() -> JsonResponse<Capabilities> {
+    JsonResponse::Value(C::get_capabilities().await)
 }
 
 async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<(), HealthError> {
@@ -446,10 +441,14 @@ mod ndc_test_commands {
         async fn get_capabilities(
             &self,
         ) -> Result<ndc_models::CapabilitiesResponse, ndc_test::error::Error> {
-            super::get_capabilities::<C>()
+            let capabilities = super::get_capabilities::<C>()
                 .await
                 .into_value::<Box<dyn std::error::Error + Send + Sync>>()
-                .map_err(|e| ndc_test::error::Error::OtherError(e))
+                .map_err(|e| ndc_test::error::Error::OtherError(e))?;
+            Ok(ndc_models::CapabilitiesResponse {
+                version: ndc_models::VERSION.into(),
+                capabilities,
+            })
         }
 
         async fn get_schema(&self) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
