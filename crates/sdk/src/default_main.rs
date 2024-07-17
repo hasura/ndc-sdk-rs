@@ -18,8 +18,8 @@ use axum::{
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
 use ndc_models::{
-    Capabilities, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse, QueryRequest,
-    QueryResponse, SchemaResponse,
+    CapabilitiesResponse, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse,
+    QueryRequest, QueryResponse, SchemaResponse,
 };
 use prometheus::Registry;
 use std::error::Error;
@@ -377,8 +377,12 @@ async fn get_metrics<C: Connector>(
     fetch_metrics::<C>(&state.configuration, &state.state, &state.metrics)
 }
 
-async fn get_capabilities<C: Connector>() -> JsonResponse<Capabilities> {
-    JsonResponse::Value(C::get_capabilities().await)
+async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
+    let capabilities = C::get_capabilities().await;
+    JsonResponse::Value(CapabilitiesResponse {
+        version: ndc_models::VERSION.into(),
+        capabilities,
+    })
 }
 
 async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<(), HealthError> {
