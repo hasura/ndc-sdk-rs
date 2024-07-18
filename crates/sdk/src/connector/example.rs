@@ -24,6 +24,7 @@ impl ConnectorSetup for Example {
         &self,
         _configuration: &<Self as Connector>::Configuration,
         _metrics: &mut prometheus::Registry,
+        _ndc_models_version: &Option<versions::SemVer>,
     ) -> Result<<Self as Connector>::State, InitializationError> {
         Ok(())
     }

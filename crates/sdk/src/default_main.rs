@@ -289,7 +289,9 @@ pub async fn init_server_state<Setup: ConnectorSetup>(
 ) -> Result<ServerState<Setup::Connector>, Box<dyn Error + Send + Sync>> {
     let mut metrics = Registry::new();
     let configuration = setup.parse_configuration(config_directory).await?;
-    let state = setup.try_init_state(&configuration, &mut metrics).await?;
+    let state = setup
+        .try_init_state(&configuration, &mut metrics, &None)
+        .await?;
     Ok(ServerState::new(configuration, state, metrics))
 }
 
@@ -582,7 +584,9 @@ mod ndc_test_commands {
     ) -> Result<ConnectorAdapter<Setup::Connector>, Box<dyn Error + Send + Sync>> {
         let mut metrics = Registry::new();
         let configuration = setup.parse_configuration(configuration_path).await?;
-        let state = setup.try_init_state(&configuration, &mut metrics).await?;
+        let state = setup
+            .try_init_state(&configuration, &mut metrics, &None)
+            .await?;
         Ok(ConnectorAdapter {
             configuration,
             state,

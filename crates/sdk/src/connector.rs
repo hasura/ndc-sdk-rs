@@ -148,5 +148,6 @@ pub trait ConnectorSetup {
         &self,
         configuration: &<Self::Connector as Connector>::Configuration,
         metrics: &mut prometheus::Registry,
+        ndc_models_versions: &Option<versions::SemVer>,
     ) -> Result<<Self::Connector as Connector>::State, InitializationError>;
 }
