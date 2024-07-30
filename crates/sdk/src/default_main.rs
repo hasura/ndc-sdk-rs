@@ -60,7 +60,8 @@ struct ServeCommand {
         long,
         value_name = "HOST IP",
         env = "HASURA_CONNECTOR_HOST",
-        default_value_t = net::IpAddr::V4(net::Ipv4Addr::UNSPECIFIED),
+        // listen on "::" defaulting to all IPv4 and IPv6 addresses
+        default_value_t = net::IpAddr::V6(net::Ipv6Addr::UNSPECIFIED),
     )]
     host: net::IpAddr,
     #[arg(
