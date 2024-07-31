@@ -54,6 +54,9 @@ impl Connector for Example {
             query: models::QueryCapabilities {
                 variables: None,
                 aggregates: None,
+                exists: models::ExistsCapabilities {
+                    nested_collections: None,
+                },
                 explain: None,
                 nested_fields: models::NestedFieldCapabilities {
                     filter_by: None,
