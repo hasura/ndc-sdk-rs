@@ -97,6 +97,7 @@
           cargo-watch
 
           just
+          nodePackages.prettier
         ];
       };
 
