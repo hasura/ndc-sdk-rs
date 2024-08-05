@@ -1,12 +1,7 @@
-use crate::check_health;
-use crate::connector::{
-    Connector, ConnectorSetup, ExplainError, FetchMetricsError, HealthError, MutationError,
-    QueryError, SchemaError,
-};
-use crate::fetch_metrics::fetch_metrics;
-use crate::json_rejection::JsonRejection;
-use crate::json_response::JsonResponse;
-use crate::tracing::{init_tracing, make_span, on_response};
+use std::error::Error;
+use std::net;
+use std::path::{Path, PathBuf};
+
 use axum::{
     body::Body,
     extract::State,
@@ -17,15 +12,23 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
+use prometheus::Registry;
+use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
+
 use ndc_models::{
     CapabilitiesResponse, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse,
     QueryRequest, QueryResponse, SchemaResponse,
 };
-use prometheus::Registry;
-use std::error::Error;
-use std::net;
-use std::path::{Path, PathBuf};
-use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
+
+use crate::check_health;
+use crate::connector::{
+    Connector, ConnectorSetup, ExplainError, FetchMetricsError, HealthError, MutationError,
+    QueryError, SchemaError,
+};
+use crate::fetch_metrics::fetch_metrics;
+use crate::json_rejection::JsonRejection;
+use crate::json_response::JsonResponse;
+use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
 struct CliArgs {
