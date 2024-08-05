@@ -13,10 +13,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: install tools
+      - name: install Rust tools
         run: |
           rustup show
 
       - name: check formatting
         run: |
           cargo fmt --all --check
+
+  nixpkgs-fmt:
+    name: nixpkgs-fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install Nix
+        uses: cachix/install-nix-action@V27
+
+      - name: check formatting
+        run: |
+          nix develop --command nixpkgs-fmt --check .
+
+  prettier:
+    name: prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install Nix
+        uses: cachix/install-nix-action@V27
+
+      - name: check formatting
+        run: |
+          nix develop --command prettier --check .

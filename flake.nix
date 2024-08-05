@@ -96,6 +96,8 @@
           cargo-watch
 
           just
+          nixpkgs-fmt
+          nodePackages.prettier
         ];
       };
 
