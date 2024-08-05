@@ -21,8 +21,10 @@ type BoxedFuture<'a, T> =
 ///
 /// We use this instead of `Fn() -> BoxedFuture<T>` because we run into strange and confusing
 /// lifetime errors with that pattern.
-pub trait Operation<T> {
-    fn run(&self) -> impl std::future::Future<Output = T> + Send + Sync;
+pub trait Operation {
+    type Output: Clone + Send + Sync;
+
+    fn run(&self) -> impl std::future::Future<Output = Self::Output> + Send + Sync;
 }
 
 /// The state of the throttle at any given moment.
@@ -54,13 +56,13 @@ enum RunningState<T> {
 /// behavior (implementing [Operation]) and an interval.
 ///
 /// See the module-level documentation for details.
-pub struct Throttle<T, Behavior: Operation<T>> {
+pub struct Throttle<Behavior: Operation> {
     behavior: Behavior,
     interval: Duration,
-    state: Arc<Mutex<ThrottleState<T>>>,
+    state: Arc<Mutex<ThrottleState<Behavior::Output>>>,
 }
 
-impl<T: Clone + Send + Sync, Behavior: Operation<T> + Sync> Throttle<T, Behavior> {
+impl<Behavior: Operation + Sync> Throttle<Behavior> {
     /// Constructs a new throttle with the given behavior and interval.
     pub fn new(behavior: Behavior, interval: Duration) -> Self {
         Self {
@@ -74,14 +76,14 @@ impl<T: Clone + Send + Sync, Behavior: Operation<T> + Sync> Throttle<T, Behavior
     /// already-running operation to complete.
     ///
     /// It may be delayed by up to the interval.
-    pub async fn next(&self) -> T {
+    pub async fn next(&self) -> Behavior::Output {
         self.decide().await.await
     }
 
     /// Decide what to do when asked to perform an operation.
     ///
     /// This acquires locks, but does not hold them in the returned future.
-    async fn decide(&self) -> BoxedFuture<T> {
+    async fn decide(&self) -> BoxedFuture<Behavior::Output> {
         let mut state = self.state.lock().await;
 
         // First, we check if we need to delay. If so, we store a future which will wait the
@@ -295,8 +297,10 @@ mod tests {
         }
     }
 
-    impl Operation<i32> for ThrottledCounter {
-        async fn run(&self) -> i32 {
+    impl Operation for ThrottledCounter {
+        type Output = i32;
+
+        async fn run(&self) -> Self::Output {
             self.counter.fetch_and_inc()
         }
     }
