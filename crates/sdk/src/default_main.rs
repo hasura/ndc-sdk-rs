@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::net;
 use std::path::{Path, PathBuf};
 
@@ -6,7 +5,7 @@ use axum::{
     body::Body,
     extract::State,
     http::{HeaderValue, Request, StatusCode},
-    response::IntoResponse,
+    response::IntoResponse as _,
     routing::{get, post},
     Json, Router,
 };
@@ -16,15 +15,12 @@ use prometheus::Registry;
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 
 use ndc_models::{
-    CapabilitiesResponse, ErrorResponse, ExplainResponse, MutationRequest, MutationResponse,
-    QueryRequest, QueryResponse, SchemaResponse,
+    CapabilitiesResponse, ExplainResponse, MutationRequest, MutationResponse, QueryRequest,
+    QueryResponse, SchemaResponse,
 };
 
 use crate::check_health;
-use crate::connector::{
-    Connector, ConnectorSetup, ExplainError, FetchMetricsError, HealthError, MutationError,
-    QueryError, SchemaError,
-};
+use crate::connector::{Connector, ConnectorSetup, ErrorResponse, Result};
 use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
@@ -192,7 +188,7 @@ impl<C: Connector> ServerState<C> {
 /// - It reads configuration as JSON from a file specified on the command line,
 /// - It reports traces to an OTLP collector specified on the command line,
 /// - Logs are written to stdout
-pub async fn default_main<Setup>() -> Result<(), Box<dyn Error + Send + Sync>>
+pub async fn default_main<Setup>() -> Result<()>
 where
     Setup: ConnectorSetup + Default,
     Setup::Connector: Connector + 'static,
@@ -205,7 +201,7 @@ where
 /// A default main function for a connector, with a non-default setup.
 ///
 /// See [`default_main`] for further details.
-pub async fn default_main_with<Setup>(setup: Setup) -> Result<(), Box<dyn Error + Send + Sync>>
+pub async fn default_main_with<Setup>(setup: Setup) -> Result<()>
 where
     Setup: ConnectorSetup,
     Setup::Connector: Connector + 'static,
@@ -218,18 +214,17 @@ where
         Command::Serve(serve_command) => serve(setup, serve_command).await,
         Command::CheckHealth(check_health_command) => check_health(check_health_command).await,
         #[cfg(feature = "ndc-test")]
-        Command::Test(test_command) => ndc_test_commands::test(setup, test_command).await,
+        Command::Test(test_command) => Ok(ndc_test_commands::test(setup, test_command).await?),
         #[cfg(feature = "ndc-test")]
-        Command::Bench(bench_command) => ndc_test_commands::bench(setup, bench_command).await,
+        Command::Bench(bench_command) => Ok(ndc_test_commands::bench(setup, bench_command).await?),
         #[cfg(feature = "ndc-test")]
-        Command::Replay(replay_command) => ndc_test_commands::replay(setup, replay_command).await,
+        Command::Replay(replay_command) => {
+            Ok(ndc_test_commands::replay(setup, replay_command).await?)
+        }
     }
 }
 
-async fn serve<Setup>(
-    setup: Setup,
-    serve_command: ServeCommand,
-) -> Result<(), Box<dyn Error + Send + Sync>>
+async fn serve<Setup>(setup: Setup, serve_command: ServeCommand) -> Result<()>
 where
     Setup: ConnectorSetup,
     Setup::Connector: Connector + 'static,
@@ -281,7 +276,8 @@ where
 
             opentelemetry::global::shutdown_tracer_provider();
         })
-        .await?;
+        .await
+        .map_err(ErrorResponse::from_error)?;
 
     Ok(())
 }
@@ -290,7 +286,7 @@ where
 pub async fn init_server_state<Setup: ConnectorSetup>(
     setup: Setup,
     config_directory: impl AsRef<Path> + Send,
-) -> Result<ServerState<Setup::Connector>, Box<dyn Error + Send + Sync>> {
+) -> Result<ServerState<Setup::Connector>> {
     let mut metrics = Registry::new();
     let configuration = setup.parse_configuration(config_directory).await?;
     let state = setup.try_init_state(&configuration, &mut metrics).await?;
@@ -335,7 +331,7 @@ where
 
 fn auth_handler(
     service_token_secret: Option<String>,
-) -> impl Fn(&mut Request<Body>) -> Result<(), axum::response::Response> + Clone {
+) -> impl Fn(&mut Request<Body>) -> std::result::Result<(), axum::response::Response> + Clone {
     let expected_auth_header: Option<HeaderValue> =
         service_token_secret.and_then(|service_token_secret| {
             let expected_bearer = format!("Bearer {service_token_secret}");
@@ -361,23 +357,19 @@ fn auth_handler(
             body = message,
             error = true,
         );
-        Err((
+        Err(ErrorResponse::new(
             StatusCode::UNAUTHORIZED,
-            Json(ErrorResponse {
-                message: "Internal error".into(),
-                details: serde_json::Value::Object(serde_json::Map::from_iter([(
-                    "cause".into(),
-                    serde_json::Value::String(message),
-                )])),
-            }),
+            "Internal error".into(),
+            serde_json::Value::Object(serde_json::Map::from_iter([(
+                "cause".into(),
+                serde_json::Value::String(message),
+            )])),
         )
-            .into_response())
+        .into_response())
     }
 }
 
-async fn get_metrics<C: Connector>(
-    State(state): State<ServerState<C>>,
-) -> Result<String, FetchMetricsError> {
+async fn get_metrics<C: Connector>(State(state): State<ServerState<C>>) -> Result<String> {
     fetch_metrics::<C>(&state.configuration, &state.state, &state.metrics)
 }
 
@@ -390,55 +382,56 @@ async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> 
     .into()
 }
 
-async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<(), HealthError> {
+async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
     C::health_check(&state.configuration, &state.state).await
 }
 
 async fn get_schema<C: Connector>(
     State(state): State<ServerState<C>>,
-) -> Result<JsonResponse<SchemaResponse>, SchemaError> {
+) -> Result<JsonResponse<SchemaResponse>> {
     C::get_schema(&state.configuration).await
 }
 
 async fn post_query_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
-) -> Result<JsonResponse<ExplainResponse>, ExplainError> {
+) -> Result<JsonResponse<ExplainResponse>> {
     C::query_explain(&state.configuration, &state.state, request).await
 }
 
 async fn post_mutation_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
-) -> Result<JsonResponse<ExplainResponse>, ExplainError> {
+) -> Result<JsonResponse<ExplainResponse>> {
     C::mutation_explain(&state.configuration, &state.state, request).await
 }
 
 async fn post_mutation<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
-) -> Result<JsonResponse<MutationResponse>, MutationError> {
+) -> Result<JsonResponse<MutationResponse>> {
     C::mutation(&state.configuration, &state.state, request).await
 }
 
 async fn post_query<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
-) -> Result<JsonResponse<QueryResponse>, QueryError> {
+) -> Result<JsonResponse<QueryResponse>> {
     C::query(&state.configuration, &state.state, request).await
 }
 
 #[cfg(feature = "ndc-test")]
 mod ndc_test_commands {
-    use super::{BenchCommand, Connector, ConnectorSetup};
-    use crate::connector::QueryError;
-    use crate::json_response::JsonResponse;
     use async_trait::async_trait;
     use ndc_test::reporter::{ConsoleReporter, TestResults};
     use prometheus::Registry;
     use std::error::Error;
     use std::path::PathBuf;
     use std::process::exit;
+
+    use crate::json_response::JsonResponse;
+
+    use super::{BenchCommand, Connector, ConnectorSetup};
 
     struct ConnectorAdapter<C: Connector> {
         configuration: C::Configuration,
@@ -457,12 +450,9 @@ mod ndc_test_commands {
         }
 
         async fn get_schema(&self) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
-            match C::get_schema(&self.configuration).await {
-                Ok(response) => response
-                    .into_value::<Box<dyn std::error::Error + Send + Sync>>()
-                    .map_err(|e| ndc_test::error::Error::OtherError(e)),
-                Err(err) => Err(ndc_test::error::Error::OtherError(err.into())),
-            }
+            Ok(C::get_schema(&self.configuration)
+                .await
+                .and_then(JsonResponse::into_value)?)
         }
 
         async fn query(
@@ -471,15 +461,7 @@ mod ndc_test_commands {
         ) -> Result<ndc_models::QueryResponse, ndc_test::error::Error> {
             Ok(C::query(&self.configuration, &self.state, request)
                 .await
-                .and_then(JsonResponse::into_value)
-                .map_err(|err| match err {
-                    QueryError::InvalidRequest(err)
-                    | QueryError::UnprocessableContent(err)
-                    | QueryError::UnsupportedOperation(err) => {
-                        ndc_test::error::Error::OtherError(err.message.into())
-                    }
-                    QueryError::Other(err, _) => ndc_test::error::Error::OtherError(err),
-                })?)
+                .and_then(JsonResponse::into_value)?)
         }
 
         async fn mutation(
@@ -488,8 +470,7 @@ mod ndc_test_commands {
         ) -> Result<ndc_models::MutationResponse, ndc_test::error::Error> {
             Ok(C::mutation(&self.configuration, &self.state, request)
                 .await
-                .and_then(JsonResponse::into_value)
-                .map_err(|err| ndc_test::error::Error::OtherError(err.into()))?)
+                .and_then(JsonResponse::into_value)?)
         }
     }
 
@@ -594,9 +575,7 @@ mod ndc_test_commands {
     }
 }
 
-async fn check_health(
-    CheckHealthCommand { host, port }: CheckHealthCommand,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn check_health(CheckHealthCommand { host, port }: CheckHealthCommand) -> Result<()> {
     match check_health::check_health(host, port).await {
         Ok(()) => {
             println!("Health check succeeded.");
