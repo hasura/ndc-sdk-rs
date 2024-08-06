@@ -78,7 +78,7 @@ pub trait Connector {
     /// This function implements the [query/explain endpoint](https://hasura.github.io/ndc-spec/specification/explain.html)
     /// from the NDC specification.
     ///
-    /// The [`ExplainError`] type is provided as a convenience to connector authors, to be used on
+    /// The [`QueryError`] type is provided as a convenience to connector authors, to be used on
     /// error.
     async fn query_explain(
         configuration: &Self::Configuration,
@@ -91,7 +91,7 @@ pub trait Connector {
     /// This function implements the [mutation/explain endpoint](https://hasura.github.io/ndc-spec/specification/explain.html)
     /// from the NDC specification.
     ///
-    /// The [`ExplainError`] type is provided as a convenience to connector authors, to be used on
+    /// The [`MutationError`] type is provided as a convenience to connector authors, to be used on
     /// error.
     async fn mutation_explain(
         configuration: &Self::Configuration,
