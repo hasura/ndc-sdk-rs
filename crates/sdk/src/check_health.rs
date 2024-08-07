@@ -1,29 +1,21 @@
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum HealthCheckError {
+    #[error("URL parse error: {0}")]
     ParseError(url::ParseError),
+    #[error("request error: {0}")]
     RequestError(reqwest::Error),
+    #[error("unsuccessful response with status code: {status}\nbody:\n{body}")]
     UnsuccessfulResponse {
         status: reqwest::StatusCode,
         body: String,
     },
 }
 
-impl std::fmt::Display for HealthCheckError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            HealthCheckError::ParseError(inner) => write!(f, "URL parse error: {inner}"),
-            HealthCheckError::RequestError(inner) => write!(f, "request error: {inner}"),
-            HealthCheckError::UnsuccessfulResponse { status, body } => {
-                write!(
-                    f,
-                    "unsuccessful response with status code: {status}\nbody:\n{body}"
-                )
-            }
-        }
+impl From<HealthCheckError> for crate::connector::error::ErrorResponse {
+    fn from(value: HealthCheckError) -> Self {
+        Self::from_error(value)
     }
 }
-
-impl std::error::Error for HealthCheckError {}
 
 pub async fn check_health(host: Option<String>, port: u16) -> Result<(), HealthCheckError> {
     let url = (|| -> Result<url::Url, url::ParseError> {

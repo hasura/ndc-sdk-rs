@@ -16,7 +16,7 @@ impl ConnectorSetup for Example {
     async fn parse_configuration(
         &self,
         _configuration_dir: impl AsRef<Path> + Send,
-    ) -> Result<<Self as Connector>::Configuration, ParseError> {
+    ) -> Result<<Self as Connector>::Configuration> {
         Ok(())
     }
 
@@ -24,7 +24,7 @@ impl ConnectorSetup for Example {
         &self,
         _configuration: &<Self as Connector>::Configuration,
         _metrics: &mut prometheus::Registry,
-    ) -> Result<<Self as Connector>::State, InitializationError> {
+    ) -> Result<<Self as Connector>::State> {
         Ok(())
     }
 }
@@ -34,17 +34,14 @@ impl Connector for Example {
     type Configuration = ();
     type State = ();
 
-    fn fetch_metrics(
-        _configuration: &Self::Configuration,
-        _state: &Self::State,
-    ) -> Result<(), FetchMetricsError> {
+    fn fetch_metrics(_configuration: &Self::Configuration, _state: &Self::State) -> Result<()> {
         Ok(())
     }
 
     async fn health_check(
         _configuration: &Self::Configuration,
         _state: &Self::State,
-    ) -> Result<(), HealthError> {
+    ) -> Result<()> {
         Ok(())
     }
 
@@ -70,7 +67,7 @@ impl Connector for Example {
 
     async fn get_schema(
         _configuration: &Self::Configuration,
-    ) -> Result<JsonResponse<models::SchemaResponse>, SchemaError> {
+    ) -> Result<JsonResponse<models::SchemaResponse>> {
         async {
             info_span!("inside tracing example");
         }
@@ -91,7 +88,7 @@ impl Connector for Example {
         _configuration: &Self::Configuration,
         _state: &Self::State,
         _request: models::QueryRequest,
-    ) -> Result<JsonResponse<models::ExplainResponse>, ExplainError> {
+    ) -> Result<JsonResponse<models::ExplainResponse>> {
         todo!()
     }
 
@@ -99,7 +96,7 @@ impl Connector for Example {
         _configuration: &Self::Configuration,
         _state: &Self::State,
         _request: models::MutationRequest,
-    ) -> Result<JsonResponse<models::ExplainResponse>, ExplainError> {
+    ) -> Result<JsonResponse<models::ExplainResponse>> {
         todo!()
     }
 
@@ -107,7 +104,7 @@ impl Connector for Example {
         _configuration: &Self::Configuration,
         _state: &Self::State,
         _request: models::MutationRequest,
-    ) -> Result<JsonResponse<models::MutationResponse>, MutationError> {
+    ) -> Result<JsonResponse<models::MutationResponse>> {
         todo!()
     }
 
@@ -115,14 +112,13 @@ impl Connector for Example {
         _configuration: &Self::Configuration,
         _state: &Self::State,
         _request: models::QueryRequest,
-    ) -> Result<JsonResponse<models::QueryResponse>, QueryError> {
+    ) -> Result<JsonResponse<models::QueryResponse>> {
         todo!()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error;
     use std::path::PathBuf;
 
     use axum_test_helper::TestClient;
@@ -131,7 +127,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn capabilities_match_ndc_spec_version() -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn capabilities_match_ndc_spec_version() -> Result<()> {
         let state =
             crate::default_main::init_server_state(Example::default(), PathBuf::new()).await?;
         let app = crate::default_main::create_router::<Example>(state, None);
