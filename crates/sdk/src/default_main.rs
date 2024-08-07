@@ -1,5 +1,6 @@
 use std::net;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use axum::{
     body::Body,
@@ -24,6 +25,7 @@ use crate::connector::{Connector, ConnectorSetup, ErrorResponse, Result};
 use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
+use crate::throttle;
 use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
@@ -139,6 +141,7 @@ pub struct ServerState<C: Connector> {
     configuration: C::Configuration,
     state: C::State,
     metrics: Registry,
+    health: throttle::Throttle<ConnectorHealth<C>>,
 }
 
 impl<C: Connector> Clone for ServerState<C>
@@ -151,17 +154,56 @@ where
             configuration: self.configuration.clone(),
             state: self.state.clone(),
             metrics: self.metrics.clone(),
+            health: self.health.clone(),
         }
     }
 }
 
-impl<C: Connector> ServerState<C> {
+impl<C: Connector> ServerState<C>
+where
+    C::Configuration: Clone,
+    C::State: Clone,
+{
     pub fn new(configuration: C::Configuration, state: C::State, metrics: Registry) -> Self {
         Self {
-            configuration,
-            state,
+            configuration: configuration.clone(),
+            state: state.clone(),
             metrics,
+            health: throttle::Throttle::new(
+                ConnectorHealth {
+                    configuration,
+                    state,
+                },
+                Duration::from_secs(1),
+            ),
         }
+    }
+}
+
+#[derive(Debug)]
+struct ConnectorHealth<C: Connector> {
+    configuration: C::Configuration,
+    state: C::State,
+}
+
+impl<C: Connector> Clone for ConnectorHealth<C>
+where
+    C::Configuration: Clone,
+    C::State: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            configuration: self.configuration.clone(),
+            state: self.state.clone(),
+        }
+    }
+}
+
+impl<C: Connector> throttle::Operation for ConnectorHealth<C> {
+    type Output = Result<()>;
+
+    async fn run(&self) -> Self::Output {
+        C::health_check(&self.configuration, &self.state).await
     }
 }
 
@@ -286,7 +328,11 @@ where
 pub async fn init_server_state<Setup: ConnectorSetup>(
     setup: Setup,
     config_directory: impl AsRef<Path> + Send,
-) -> Result<ServerState<Setup::Connector>> {
+) -> Result<ServerState<Setup::Connector>>
+where
+    <Setup::Connector as Connector>::Configuration: Clone,
+    <Setup::Connector as Connector>::State: Clone,
+{
     let mut metrics = Registry::new();
     let configuration = setup.parse_configuration(config_directory).await?;
     let state = setup.try_init_state(&configuration, &mut metrics).await?;
@@ -383,7 +429,7 @@ async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> 
 }
 
 async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
-    C::health_check(&state.configuration, &state.state).await
+    state.health.next().await
 }
 
 async fn get_schema<C: Connector>(

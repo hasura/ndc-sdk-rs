@@ -14,17 +14,17 @@ use tokio::sync::{oneshot, Mutex};
 use tokio::time::{self, Instant};
 
 /// A type alias for a boxed future, to simplify places where it's used.
-type BoxedFuture<'a, T> =
-    std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + Sync + 'a>>;
+type BoxedFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
 
 /// An operation that can be throttled.
 ///
 /// We use this instead of `Fn() -> BoxedFuture<T>` because we run into strange and confusing
 /// lifetime errors with that pattern.
+
 pub trait Operation {
     type Output: Clone + Send + Sync;
 
-    fn run(&self) -> impl std::future::Future<Output = Self::Output> + Send + Sync;
+    fn run(&self) -> impl std::future::Future<Output = Self::Output> + Send;
 }
 
 /// The state of the throttle at any given moment.
@@ -56,17 +56,26 @@ enum RunningState<T> {
 /// behavior (implementing [Operation]) and an interval.
 ///
 /// See the module-level documentation for details.
+///
+/// Cloning this creates a new value which shares its state with the original.
+#[derive(Clone)]
 pub struct Throttle<Behavior: Operation> {
-    behavior: Behavior,
+    behavior: Arc<Behavior>,
     interval: Duration,
     state: Arc<Mutex<ThrottleState<Behavior::Output>>>,
 }
 
-impl<Behavior: Operation + Sync> Throttle<Behavior> {
+impl<Behavior: Operation + std::fmt::Debug> std::fmt::Debug for Throttle<Behavior> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Throttle({:?})", self.behavior)
+    }
+}
+
+impl<Behavior: Operation + Send + Sync> Throttle<Behavior> {
     /// Constructs a new throttle with the given behavior and interval.
     pub fn new(behavior: Behavior, interval: Duration) -> Self {
         Self {
-            behavior,
+            behavior: Arc::new(behavior),
             interval,
             state: Arc::new(Mutex::new(ThrottleState::NeverRun)),
         }
