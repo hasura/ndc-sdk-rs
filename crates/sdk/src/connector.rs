@@ -38,7 +38,7 @@ pub use error::*;
 /// a connection string would be configuration, but a connection pool object
 /// created from that connection string would be state.
 #[async_trait]
-pub trait Connector {
+pub trait Connector: Send {
     /// The type of validated configuration
     type Configuration: Sync + Send;
     /// The type of unserializable state
@@ -55,9 +55,16 @@ pub trait Connector {
 
     /// Check the health of the connector.
     ///
-    /// For example, this function should check that the connector
-    /// is able to reach its data source over the network.
-    async fn health_check(configuration: &Self::Configuration, state: &Self::State) -> Result<()>;
+    /// This should simply verify that the connector is ready to start accepting
+    /// requests. It should not verify that external data sources are available.
+    ///
+    /// For most use cases, the default implementation should be fine.
+    async fn get_health_readiness(
+        _configuration: &Self::Configuration,
+        _state: &Self::State,
+    ) -> Result<()> {
+        Ok(())
+    }
 
     /// Get the connector's capabilities.
     ///
