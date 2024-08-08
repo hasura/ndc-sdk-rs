@@ -38,13 +38,6 @@ impl Connector for Example {
         Ok(())
     }
 
-    async fn health_check(
-        _configuration: &Self::Configuration,
-        _state: &Self::State,
-    ) -> Result<()> {
-        Ok(())
-    }
-
     async fn get_capabilities() -> models::Capabilities {
         models::Capabilities {
             relationships: None,

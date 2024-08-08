@@ -7,7 +7,7 @@ use axum::{
     http::{HeaderValue, Request, StatusCode},
     response::IntoResponse as _,
     routing::{get, post},
-    Json, Router,
+    Json,
 };
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
@@ -293,25 +293,28 @@ pub async fn init_server_state<Setup: ConnectorSetup>(
     Ok(ServerState::new(configuration, state, metrics))
 }
 
-pub fn create_router<C>(state: ServerState<C>, service_token_secret: Option<String>) -> Router
+pub fn create_router<C>(
+    state: ServerState<C>,
+    service_token_secret: Option<String>,
+) -> axum::Router<()>
 where
     C: Connector + 'static,
     C::Configuration: Clone,
     C::State: Clone,
 {
-    Router::new()
+    axum::Router::new()
         .route("/capabilities", get(get_capabilities::<C>))
-        .route("/health", get(get_health::<C>))
         .route("/metrics", get(get_metrics::<C>))
         .route("/schema", get(get_schema::<C>))
         .route("/query", post(post_query::<C>))
         .route("/query/explain", post(post_query_explain::<C>))
         .route("/mutation", post(post_mutation::<C>))
         .route("/mutation/explain", post(post_mutation_explain::<C>))
-        .with_state(state)
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
             service_token_secret,
         )))
+        .route("/health", get(get_health_readiness::<C>)) // health checks are not authenticated
+        .with_state(state)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_span)
@@ -382,8 +385,8 @@ async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> 
     .into()
 }
 
-async fn get_health<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
-    C::health_check(&state.configuration, &state.state).await
+async fn get_health_readiness<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
+    C::get_health_readiness(&state.configuration, &state.state).await
 }
 
 async fn get_schema<C: Connector>(
