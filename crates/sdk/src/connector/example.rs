@@ -45,10 +45,12 @@ impl Connector for Example {
                 variables: None,
                 aggregates: None,
                 exists: models::ExistsCapabilities {
-                    nested_collections: None,
+                    named_scopes: None,
+                    unrelated: None,
                 },
                 explain: None,
                 nested_fields: models::NestedFieldCapabilities {
+                    nested_collections: None,
                     filter_by: None,
                     order_by: None,
                     aggregates: None,
@@ -76,6 +78,7 @@ impl Connector for Example {
             procedures: vec![],
             object_types: BTreeMap::new(),
             scalar_types: BTreeMap::new(),
+            capabilities: None,
         }
         .into())
     }
