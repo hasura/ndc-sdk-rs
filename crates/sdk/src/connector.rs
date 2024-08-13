@@ -38,7 +38,7 @@ pub use error::*;
 /// a connection string would be configuration, but a connection pool object
 /// created from that connection string would be state.
 #[async_trait]
-pub trait Connector {
+pub trait Connector: Send {
     /// The type of validated configuration
     type Configuration: Sync + Send;
     /// The type of unserializable state
@@ -51,19 +51,20 @@ pub trait Connector {
     /// query metrics which cannot be updated directly, e.g.
     /// the number of idle connections in a connection pool
     /// can be polled but not updated directly.
-    fn fetch_metrics(
-        configuration: &Self::Configuration,
-        state: &Self::State,
-    ) -> Result<(), FetchMetricsError>;
+    fn fetch_metrics(configuration: &Self::Configuration, state: &Self::State) -> Result<()>;
 
     /// Check the health of the connector.
     ///
-    /// For example, this function should check that the connector
-    /// is able to reach its data source over the network.
-    async fn health_check(
-        configuration: &Self::Configuration,
-        state: &Self::State,
-    ) -> Result<(), HealthError>;
+    /// This should simply verify that the connector is ready to start accepting
+    /// requests. It should not verify that external data sources are available.
+    ///
+    /// For most use cases, the default implementation should be fine.
+    async fn get_health_readiness(
+        _configuration: &Self::Configuration,
+        _state: &Self::State,
+    ) -> Result<()> {
+        Ok(())
+    }
 
     /// Get the connector's capabilities.
     ///
@@ -77,47 +78,59 @@ pub trait Connector {
     /// from the NDC specification.
     async fn get_schema(
         configuration: &Self::Configuration,
-    ) -> Result<JsonResponse<models::SchemaResponse>, SchemaError>;
+    ) -> Result<JsonResponse<models::SchemaResponse>>;
 
     /// Explain a query by creating an execution plan
     ///
     /// This function implements the [query/explain endpoint](https://hasura.github.io/ndc-spec/specification/explain.html)
     /// from the NDC specification.
+    ///
+    /// The [`QueryError`] type is provided as a convenience to connector authors, to be used on
+    /// error.
     async fn query_explain(
         configuration: &Self::Configuration,
         state: &Self::State,
         request: models::QueryRequest,
-    ) -> Result<JsonResponse<models::ExplainResponse>, ExplainError>;
+    ) -> Result<JsonResponse<models::ExplainResponse>>;
 
     /// Explain a mutation by creating an execution plan
     ///
     /// This function implements the [mutation/explain endpoint](https://hasura.github.io/ndc-spec/specification/explain.html)
     /// from the NDC specification.
+    ///
+    /// The [`MutationError`] type is provided as a convenience to connector authors, to be used on
+    /// error.
     async fn mutation_explain(
         configuration: &Self::Configuration,
         state: &Self::State,
         request: models::MutationRequest,
-    ) -> Result<JsonResponse<models::ExplainResponse>, ExplainError>;
+    ) -> Result<JsonResponse<models::ExplainResponse>>;
 
     /// Execute a mutation
     ///
     /// This function implements the [mutation endpoint](https://hasura.github.io/ndc-spec/specification/mutations/index.html)
     /// from the NDC specification.
+    ///
+    /// The [`MutationError`] type is provided as a convenience to connector authors, to be used on
+    /// error.
     async fn mutation(
         configuration: &Self::Configuration,
         state: &Self::State,
         request: models::MutationRequest,
-    ) -> Result<JsonResponse<models::MutationResponse>, MutationError>;
+    ) -> Result<JsonResponse<models::MutationResponse>>;
 
     /// Execute a query
     ///
     /// This function implements the [query endpoint](https://hasura.github.io/ndc-spec/specification/queries/index.html)
     /// from the NDC specification.
+    ///
+    /// The [`QueryError`] type is provided as a convenience to connector authors, to be used on
+    /// error.
     async fn query(
         configuration: &Self::Configuration,
         state: &Self::State,
         request: models::QueryRequest,
-    ) -> Result<JsonResponse<models::QueryResponse>, QueryError>;
+    ) -> Result<JsonResponse<models::QueryResponse>>;
 }
 
 /// Connectors are set up by values that implement this trait.
@@ -130,23 +143,26 @@ pub trait Connector {
 pub trait ConnectorSetup {
     type Connector: Connector;
 
-    /// Validate the configuration provided by the user, returning a
-    /// configuration error or a validated [`Connector::Configuration`].
+    /// Validate the configuration provided by the user, returning a configuration error or a
+    /// validated [`Connector::Configuration`].
+    ///
+    /// The [`ParseError`] type is provided as a convenience to connector authors, to be used on
+    /// error.
     async fn parse_configuration(
         &self,
         configuration_dir: impl AsRef<Path> + Send,
-    ) -> Result<<Self::Connector as Connector>::Configuration, ParseError>;
+    ) -> Result<<Self::Connector as Connector>::Configuration>;
 
     /// Initialize the connector's in-memory state.
     ///
-    /// For example, any connection pools, prepared queries, or other managed
-    /// resources would be allocated here.
+    /// For example, any connection pools, prepared queries, or other managed resources would be
+    /// allocated here.
     ///
-    /// In addition, this function should register any connector-specific
-    /// metrics with the metrics registry.
+    /// In addition, this function should register any connector-specific metrics with the metrics
+    /// registry.
     async fn try_init_state(
         &self,
         configuration: &<Self::Connector as Connector>::Configuration,
         metrics: &mut prometheus::Registry,
-    ) -> Result<<Self::Connector as Connector>::State, InitializationError>;
+    ) -> Result<<Self::Connector as Connector>::State>;
 }

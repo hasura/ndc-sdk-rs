@@ -16,10 +16,12 @@ dev:
 format:
   cargo fmt --all
   ! command -v nix > /dev/null || nix fmt
+  ! command -v prettier > /dev/null || prettier --write .
 
 format-check:
   cargo fmt --all --check
   ! command -v nix > /dev/null || nix fmt -- --check .
+  ! command -v prettier > /dev/null || prettier --check .
 
 lint:
   cargo clippy --all-targets --all-features
