@@ -76,6 +76,8 @@ struct ServeCommand {
     service_token_secret: Option<String>,
     #[arg(long, value_name = "NAME", env = "OTEL_SERVICE_NAME")]
     service_name: Option<String>,
+    #[arg(long, value_name = "MAX_REQUEST_SIZE", env = "HASURA_MAX_REQUEST_SIZE")]
+    max_request_size: Option<usize>,
 }
 
 #[derive(Clone, Parser)]
@@ -244,6 +246,7 @@ where
     let router = create_router::<Setup::Connector>(
         server_state.clone(),
         serve_command.service_token_secret.clone(),
+        serve_command.max_request_size,
     );
 
     let address = net::SocketAddr::new(serve_command.host, serve_command.port);
@@ -298,6 +301,7 @@ pub async fn init_server_state<Setup: ConnectorSetup>(
 pub fn create_router<C>(
     state: ServerState<C>,
     service_token_secret: Option<String>,
+    max_request_size: Option<usize>,
 ) -> axum::Router<()>
 where
     C: Connector + 'static,
@@ -312,12 +316,13 @@ where
         .route("/query/explain", post(post_query_explain::<C>))
         .route("/mutation", post(post_mutation::<C>))
         .route("/mutation/explain", post(post_mutation_explain::<C>))
-
         // We want to limit the size of requests to 100MB to prevent various DDoS / SQL overflow
         // vulnerabilities. We use RequestBodyLimit instead of DefaultBodyLimit to include chunked
         // requests, too.
-        .layer(RequestBodyLimitLayer::new(100 * 1024 * 1024))
-
+        .layer(RequestBodyLimitLayer::new(match max_request_size {
+            Some(size) => size,
+            None => 100 * 1024 * 1024,
+        }))
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
             service_token_secret,
         )))
