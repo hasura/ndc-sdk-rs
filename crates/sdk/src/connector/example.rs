@@ -126,7 +126,7 @@ mod tests {
     async fn capabilities_match_ndc_spec_version() -> Result<()> {
         let state =
             crate::default_main::init_server_state(Example::default(), PathBuf::new()).await?;
-        let app = crate::default_main::create_router::<Example>(state, None);
+        let app = crate::default_main::create_router::<Example>(state, None, None);
 
         let client = TestClient::new(app);
         let response = client.get("/capabilities").send().await;
