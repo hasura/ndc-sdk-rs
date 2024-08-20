@@ -50,6 +50,9 @@ impl Connector for Example {
                     order_by: None,
                     aggregates: None,
                 },
+                exists: models::ExistsCapabilities {
+                    nested_collections: None,
+                },
             },
             mutation: models::MutationCapabilities {
                 transactional: None,
