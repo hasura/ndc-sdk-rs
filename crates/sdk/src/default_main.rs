@@ -355,7 +355,7 @@ fn auth_handler(
 }
 
 async fn get_metrics<C: Connector>(State(state): State<ServerState<C>>) -> Result<String> {
-    fetch_metrics::<C>(&state.configuration, &state.state, &state.metrics)
+    fetch_metrics::<C>(state.configuration(), state.state(), state.metrics())
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
@@ -368,41 +368,41 @@ async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> 
 }
 
 async fn get_health_readiness<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
-    C::get_health_readiness(&state.configuration, &state.state).await
+    C::get_health_readiness(state.configuration(), state.state()).await
 }
 
 async fn get_schema<C: Connector>(
     State(state): State<ServerState<C>>,
 ) -> Result<JsonResponse<SchemaResponse>> {
-    C::get_schema(&state.configuration).await
+    C::get_schema(state.configuration()).await
 }
 
 async fn post_query_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<ExplainResponse>> {
-    C::query_explain(&state.configuration, &state.state, request).await
+    C::query_explain(state.configuration(), state.state(), request).await
 }
 
 async fn post_mutation_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
 ) -> Result<JsonResponse<ExplainResponse>> {
-    C::mutation_explain(&state.configuration, &state.state, request).await
+    C::mutation_explain(state.configuration(), state.state(), request).await
 }
 
 async fn post_mutation<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
 ) -> Result<JsonResponse<MutationResponse>> {
-    C::mutation(&state.configuration, &state.state, request).await
+    C::mutation(state.configuration(), state.state(), request).await
 }
 
 async fn post_query<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<QueryResponse>> {
-    C::query(&state.configuration, &state.state, request).await
+    C::query(state.configuration(), state.state(), request).await
 }
 
 #[cfg(feature = "ndc-test")]

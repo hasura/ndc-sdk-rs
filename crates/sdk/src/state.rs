@@ -2,9 +2,9 @@ use crate::connector::Connector;
 
 #[derive(Debug)]
 pub struct ServerState<C: Connector> {
-    pub configuration: C::Configuration,
-    pub state: C::State,
-    pub metrics: prometheus::Registry,
+    configuration: C::Configuration,
+    state: C::State,
+    metrics: prometheus::Registry,
 }
 
 impl<C: Connector> Clone for ServerState<C>
@@ -32,5 +32,17 @@ impl<C: Connector> ServerState<C> {
             state,
             metrics,
         }
+    }
+
+    pub fn configuration(&self) -> &C::Configuration {
+        &self.configuration
+    }
+
+    pub fn state(&self) -> &C::State {
+        &self.state
+    }
+
+    pub fn metrics(&self) -> &prometheus::Registry {
+        &self.metrics
     }
 }
