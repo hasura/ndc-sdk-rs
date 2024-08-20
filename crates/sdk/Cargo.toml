@@ -24,8 +24,8 @@ rustls = ["reqwest/rustls"]
 ndc-test = ["dep:ndc-test"]
 
 [dependencies]
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", rev = "2893acd5de273667e84f9f87a25901615b368593" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", rev = "2893acd5de273667e84f9f87a25901615b368593", optional = true }
+ndc-models = { git = "https://github.com/hasura/ndc-spec.git", rev = "4844feb9ffd7dd5aeec7f83da6c42d34b88080cb" }
+ndc-test = { git = "https://github.com/hasura/ndc-spec.git", rev = "4844feb9ffd7dd5aeec7f83da6c42d34b88080cb", optional = true }
 
 async-trait = "0.1.79"
 axum = { version = "0.6.20", features = ["http2"] }

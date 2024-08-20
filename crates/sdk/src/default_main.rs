@@ -449,7 +449,7 @@ mod ndc_test_commands {
             super::get_capabilities::<C>()
                 .await
                 .into_value::<Box<dyn std::error::Error + Send + Sync>>()
-                .map_err(|e| ndc_test::error::Error::OtherError(e))
+                .map_err(ndc_test::error::Error::OtherError)
         }
 
         async fn get_schema(&self) -> Result<ndc_models::SchemaResponse, ndc_test::error::Error> {
