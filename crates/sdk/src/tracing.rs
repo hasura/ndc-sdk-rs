@@ -3,8 +3,9 @@ use std::env;
 use std::error::Error;
 use std::time::Duration;
 
-use axum::body::{Body, BoxBody};
+use axum::body::Body;
 use http::{Request, Response};
+use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
 use tracing::{Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
@@ -67,11 +68,11 @@ pub fn init_tracing(
                     }
                 }?;
 
-            let tracer = opentelemetry_otlp::new_pipeline()
+            let provider = opentelemetry_otlp::new_pipeline()
                 .tracing()
                 .with_exporter(exporter)
                 .with_trace_config(
-                    opentelemetry_sdk::trace::config()
+                    opentelemetry_sdk::trace::Config::default()
                         .with_resource(opentelemetry_sdk::Resource::new(vec![
                             opentelemetry::KeyValue::new(
                                 opentelemetry_semantic_conventions::resource::SERVICE_NAME,
@@ -87,6 +88,8 @@ pub fn init_tracing(
                         ))),
                 )
                 .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+
+            let tracer = provider.tracer("ndc");
 
             subscriber
                 .with(
@@ -133,7 +136,7 @@ pub fn make_span(request: &Request<Body>) -> Span {
 }
 
 // Custom function for adding information to request-level span that is only available at response time.
-pub fn on_response(response: &Response<BoxBody>, latency: Duration, span: &Span) {
+pub fn on_response(response: &Response<Body>, latency: Duration, span: &Span) {
     span.record("status", tracing::field::display(response.status()));
     span.record("latency", tracing::field::display(latency.as_nanos()));
 }

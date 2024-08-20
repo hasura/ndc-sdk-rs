@@ -49,9 +49,12 @@ impl Connector for Example {
                     filter_by: None,
                     order_by: None,
                     aggregates: None,
+                    nested_collections: None,
                 },
                 exists: models::ExistsCapabilities {
                     nested_collections: None,
+                    named_scopes: None,
+                    unrelated: None,
                 },
             },
             mutation: models::MutationCapabilities {
@@ -76,6 +79,7 @@ impl Connector for Example {
             procedures: vec![],
             object_types: BTreeMap::new(),
             scalar_types: BTreeMap::new(),
+            capabilities: None,
         }
         .into())
     }
