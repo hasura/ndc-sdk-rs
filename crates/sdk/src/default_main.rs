@@ -319,10 +319,7 @@ where
         // We want to limit the size of requests to 100MB to prevent various DDoS / SQL overflow
         // vulnerabilities. We use RequestBodyLimit instead of DefaultBodyLimit to include chunked
         // requests, too.
-        .layer(RequestBodyLimitLayer::new(match max_request_size {
-            Some(size) => size,
-            None => 100 * 1024 * 1024,
-        }))
+        .layer(RequestBodyLimitLayer::new(max_request_size.unwrap_or(100 * 1024 * 1024)))
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
             service_token_secret,
         )))
