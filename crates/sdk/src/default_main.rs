@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use axum::{
     body::Body,
-    extract::{RequestBodyLimit, State},
+    extract::State,
     http::{HeaderValue, Request, StatusCode},
     response::IntoResponse as _,
     routing::{get, post},
@@ -12,7 +12,9 @@ use axum::{
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
 use prometheus::Registry;
-use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
+use tower_http::{
+    limit::RequestBodyLimitLayer, trace::TraceLayer, validate_request::ValidateRequestHeaderLayer,
+};
 
 use ndc_models::{
     CapabilitiesResponse, ExplainResponse, MutationRequest, MutationResponse, QueryRequest,
@@ -25,9 +27,6 @@ use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
 use crate::tracing::{init_tracing, make_span, on_response};
-
-// To add a limit to request sizes.
-const MB: usize = 1_048_576;
 
 #[derive(Parser)]
 struct CliArgs {
@@ -313,12 +312,12 @@ where
         .route("/query/explain", post(post_query_explain::<C>))
         .route("/mutation", post(post_mutation::<C>))
         .route("/mutation/explain", post(post_mutation_explain::<C>))
+        .layer(RequestBodyLimitLayer::new(100 * 1024 * 1024))
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
             service_token_secret,
         )))
         .route("/health", get(get_health_readiness::<C>)) // health checks are not authenticated
         .with_state(state)
-        .layer(RequestBodyLimit::max(100 * MB))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_span)
