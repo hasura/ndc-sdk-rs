@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use axum::{
     body::Body,
-    extract::{DefaultBodyLimit, State},
+    extract::{RequestBodyLimit, State},
     http::{HeaderValue, Request, StatusCode},
     response::IntoResponse as _,
     routing::{get, post},
@@ -318,7 +318,7 @@ where
         )))
         .route("/health", get(get_health_readiness::<C>)) // health checks are not authenticated
         .with_state(state)
-        .layer(DefaultBodyLimit::max(100 * MB))
+        .layer(RequestBodyLimit::max(100 * MB))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_span)
