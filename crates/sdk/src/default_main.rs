@@ -26,6 +26,7 @@ use crate::connector::{Connector, ConnectorSetup, ErrorResponse, Result};
 use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
+use crate::state::ServerState;
 use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
@@ -137,37 +138,6 @@ struct CheckHealthCommand {
 }
 
 type Port = u16;
-
-#[derive(Debug)]
-pub struct ServerState<C: Connector> {
-    configuration: C::Configuration,
-    state: C::State,
-    metrics: Registry,
-}
-
-impl<C: Connector> Clone for ServerState<C>
-where
-    C::Configuration: Clone,
-    C::State: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            configuration: self.configuration.clone(),
-            state: self.state.clone(),
-            metrics: self.metrics.clone(),
-        }
-    }
-}
-
-impl<C: Connector> ServerState<C> {
-    pub fn new(configuration: C::Configuration, state: C::State, metrics: Registry) -> Self {
-        Self {
-            configuration,
-            state,
-            metrics,
-        }
-    }
-}
 
 /// A default main function for a connector.
 ///
