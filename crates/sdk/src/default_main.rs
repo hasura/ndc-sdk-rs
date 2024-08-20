@@ -312,7 +312,12 @@ where
         .route("/query/explain", post(post_query_explain::<C>))
         .route("/mutation", post(post_mutation::<C>))
         .route("/mutation/explain", post(post_mutation_explain::<C>))
+
+        // We want to limit the size of requests to 100MB to prevent various DDoS / SQL overflow
+        // vulnerabilities. We use RequestBodyLimit instead of DefaultBodyLimit to include chunked
+        // requests, too.
         .layer(RequestBodyLimitLayer::new(100 * 1024 * 1024))
+
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
             service_token_secret,
         )))
