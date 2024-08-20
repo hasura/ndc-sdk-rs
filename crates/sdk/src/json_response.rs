@@ -58,13 +58,13 @@ impl<A: serde::Serialize> IntoResponse for JsonResponse<A> {
 #[cfg(test)]
 mod tests {
     use axum::{routing, Router};
-    use axum_test_helper::TestClient;
     use reqwest::StatusCode;
 
+    use super::test_client::TestClient;
     use super::*;
 
     #[tokio::test]
-    async fn serializes_value_to_json() {
+    async fn serializes_value_to_json() -> anyhow::Result<()> {
         let app = Router::new().route(
             "/",
             routing::get(|| async {
@@ -75,8 +75,8 @@ mod tests {
             }),
         );
 
-        let client = TestClient::new(app);
-        let response = client.get("/").send().await;
+        let client = TestClient::new(app)?;
+        let response = client.get("/").send().await?;
 
         assert_eq!(response.status(), StatusCode::OK);
 
@@ -86,21 +86,22 @@ mod tests {
             vec!["application/json"]
         );
 
-        let body = response.text().await;
+        let body = response.text().await?;
         assert_eq!(body, r#"{"name":"Alice Appleton","age":42}"#);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn writes_json_string_directly() {
+    async fn writes_json_string_directly() -> anyhow::Result<()> {
         let app = Router::new().route(
             "/",
             routing::get(|| async {
-                JsonResponse::Serialized::<Person>(r#"{"name":"Bob Davis","age":7}"#.into())
+                JsonResponse::Serialized::<Person>(Bytes::from(r#"{"name":"Bob Burger","age":7}"#))
             }),
         );
 
-        let client = TestClient::new(app);
-        let response = client.get("/").send().await;
+        let client = TestClient::new(app)?;
+        let response = client.get("/").send().await?;
 
         assert_eq!(response.status(), StatusCode::OK);
 
@@ -110,13 +111,52 @@ mod tests {
             vec!["application/json"]
         );
 
-        let body = response.text().await;
-        assert_eq!(body, r#"{"name":"Bob Davis","age":7}"#);
+        let body = response.text().await?;
+        assert_eq!(body, r#"{"name":"Bob Burger","age":7}"#);
+        Ok(())
     }
 
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     struct Person {
         name: String,
         age: u16,
+    }
+}
+
+#[cfg(test)]
+pub mod test_client {
+    use std::net::SocketAddr;
+
+    const LOCALHOST: std::net::IpAddr = std::net::IpAddr::V6(std::net::Ipv6Addr::LOCALHOST);
+
+    pub struct TestClient {
+        address: SocketAddr,
+        client: reqwest::Client,
+    }
+
+    impl TestClient {
+        pub fn new(router: axum::Router) -> anyhow::Result<Self> {
+            let listener = std::net::TcpListener::bind(std::net::SocketAddr::new(LOCALHOST, 0))?;
+            let address = listener.local_addr()?;
+
+            // we ignore the handle and let the test runner clean up the server
+            tokio::spawn(async move {
+                axum::Server::from_tcp(listener)
+                    .expect("server error")
+                    .serve(router.into_make_service())
+                    .await
+                    .expect("server error");
+            });
+
+            let client = reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()?;
+
+            Ok(TestClient { address, client })
+        }
+
+        pub fn get(&self, url: &str) -> reqwest::RequestBuilder {
+            self.client.get(format!("http://{}{}", self.address, url))
+        }
     }
 }
