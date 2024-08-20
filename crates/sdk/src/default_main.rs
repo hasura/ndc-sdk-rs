@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use axum::{
     body::Body,
-    extract::State,
+    extract::{DefaultBodyLimit, State},
     http::{HeaderValue, Request, StatusCode},
     response::IntoResponse as _,
     routing::{get, post},
@@ -25,6 +25,9 @@ use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
 use crate::tracing::{init_tracing, make_span, on_response};
+
+// To add a limit to request sizes.
+const MB: usize = 1_048_576;
 
 #[derive(Parser)]
 struct CliArgs {
@@ -315,6 +318,7 @@ where
         )))
         .route("/health", get(get_health_readiness::<C>)) // health checks are not authenticated
         .with_state(state)
+        .layer(DefaultBodyLimit::max(100 * MB))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_span)
