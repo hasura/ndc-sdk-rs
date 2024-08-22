@@ -90,6 +90,7 @@
 
         nativeBuildInputs = [
           rustToolchain
+          bacon
           cargo-edit
           cargo-machete
           cargo-nextest
