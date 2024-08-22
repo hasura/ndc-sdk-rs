@@ -214,8 +214,8 @@ where
     let server_state = init_server_state(setup, serve_command.configuration).await?;
 
     let router = create_router::<Setup::Connector>(
-        server_state.clone(),
-        serve_command.service_token_secret.clone(),
+        server_state,
+        serve_command.service_token_secret,
         serve_command.max_request_size,
     );
 
