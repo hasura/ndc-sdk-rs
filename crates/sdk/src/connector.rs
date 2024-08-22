@@ -40,9 +40,9 @@ pub use error::*;
 #[async_trait]
 pub trait Connector: Send {
     /// The type of validated configuration
-    type Configuration: Sync + Send;
+    type Configuration: Send + Sync;
     /// The type of unserializable state
-    type State: Sync + Send;
+    type State: Send + Sync;
 
     /// Update any metrics from the state
     ///
@@ -140,8 +140,19 @@ pub trait Connector: Send {
 ///
 /// See [`Connector`] for further details.
 #[async_trait]
-pub trait ConnectorSetup {
-    type Connector: Connector;
+pub trait ConnectorSetup:
+    ParseConfiguration<Configuration = <Self::Connector as Connector>::Configuration>
+    + InitState<
+        Configuration = <Self::Connector as Connector>::Configuration,
+        State = <Self::Connector as Connector>::State,
+    > + 'static
+{
+    type Connector: Connector<Configuration: Clone, State: Clone> + 'static;
+}
+
+#[async_trait]
+pub trait ParseConfiguration {
+    type Configuration;
 
     /// Validate the configuration provided by the user, returning a configuration error or a
     /// validated [`Connector::Configuration`].
@@ -151,7 +162,13 @@ pub trait ConnectorSetup {
     async fn parse_configuration(
         &self,
         configuration_dir: impl AsRef<Path> + Send,
-    ) -> Result<<Self::Connector as Connector>::Configuration>;
+    ) -> Result<Self::Configuration>;
+}
+
+#[async_trait]
+pub trait InitState: Send + Sync {
+    type Configuration;
+    type State;
 
     /// Initialize the connector's in-memory state.
     ///
@@ -162,7 +179,7 @@ pub trait ConnectorSetup {
     /// registry.
     async fn try_init_state(
         &self,
-        configuration: &<Self::Connector as Connector>::Configuration,
+        configuration: &Self::Configuration,
         metrics: &mut prometheus::Registry,
-    ) -> Result<<Self::Connector as Connector>::State>;
+    ) -> Result<Self::State>;
 }

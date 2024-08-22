@@ -10,8 +10,8 @@ use super::*;
 pub struct Example {}
 
 #[async_trait]
-impl ConnectorSetup for Example {
-    type Connector = Self;
+impl ParseConfiguration for Example {
+    type Configuration = ();
 
     async fn parse_configuration(
         &self,
@@ -19,6 +19,12 @@ impl ConnectorSetup for Example {
     ) -> Result<<Self as Connector>::Configuration> {
         Ok(())
     }
+}
+
+#[async_trait]
+impl InitState for Example {
+    type Configuration = ();
+    type State = ();
 
     async fn try_init_state(
         &self,
@@ -27,6 +33,11 @@ impl ConnectorSetup for Example {
     ) -> Result<<Self as Connector>::State> {
         Ok(())
     }
+}
+
+#[async_trait]
+impl ConnectorSetup for Example {
+    type Connector = Self;
 }
 
 #[async_trait]
