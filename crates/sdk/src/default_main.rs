@@ -211,7 +211,7 @@ where
     )
     .expect("Unable to initialize tracing");
 
-    let server_state = init_server_state(setup, serve_command.configuration).await?;
+    let server_state = init_server_state(setup, &serve_command.configuration).await?;
 
     let router = create_router::<Setup::Connector>(
         server_state,
@@ -260,7 +260,7 @@ where
 /// Initialize the server state from the configuration file.
 pub async fn init_server_state<Setup: ConnectorSetup>(
     setup: Setup,
-    config_directory: impl AsRef<Path> + Send,
+    config_directory: &Path,
 ) -> Result<ServerState<Setup::Connector>> {
     let metrics = Registry::new();
     let configuration = setup.parse_configuration(config_directory).await?;
@@ -458,7 +458,7 @@ mod ndc_test_commands {
         }
     }
 
-    pub(super) async fn test<Setup: super::ConnectorSetup>(
+    pub(super) async fn test<Setup: ConnectorSetup>(
         setup: Setup,
         command: super::TestCommand,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -486,7 +486,7 @@ mod ndc_test_commands {
         Ok(())
     }
 
-    pub(super) async fn replay<Setup: super::ConnectorSetup>(
+    pub(super) async fn replay<Setup: ConnectorSetup>(
         setup: Setup,
         command: super::ReplayCommand,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -550,7 +550,7 @@ mod ndc_test_commands {
         configuration_path: PathBuf,
     ) -> Result<ConnectorAdapter<Setup::Connector>, Box<dyn Error + Send + Sync>> {
         let mut metrics = Registry::new();
-        let configuration = setup.parse_configuration(configuration_path).await?;
+        let configuration = setup.parse_configuration(&configuration_path).await?;
         let state = setup.try_init_state(&configuration, &mut metrics).await?;
         Ok(ConnectorAdapter {
             configuration,

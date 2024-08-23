@@ -38,7 +38,7 @@ pub use error::*;
 /// a connection string would be configuration, but a connection pool object
 /// created from that connection string would be state.
 #[async_trait]
-pub trait Connector: Send {
+pub trait Connector: Send + 'static {
     /// The type of validated configuration
     type Configuration: Send + Sync;
     /// The type of unserializable state
@@ -138,25 +138,9 @@ pub trait Connector: Send {
 /// It provides a method for parsing configuration, and another for initializing state.
 ///
 /// See [`Connector`] for further details.
-//
-// This is actually split into [`ParseConfiguration`] and [`InitState`], because this makes it
-// possible to pass around a `Box<dyn InitState>` internally. This is not ideal and we would prefer
-// to merge these back into a single trait.
 #[async_trait]
-pub trait ConnectorSetup:
-    ParseConfiguration<Configuration = <Self::Connector as Connector>::Configuration>
-    + InitState<
-        Configuration = <Self::Connector as Connector>::Configuration,
-        State = <Self::Connector as Connector>::State,
-    > + 'static
-{
+pub trait ConnectorSetup: Send + Sync + 'static {
     type Connector: Connector;
-}
-
-/// Reads configuration from a directory and returns the specified configuration.
-#[async_trait]
-pub trait ParseConfiguration {
-    type Configuration;
 
     /// Validate the configuration provided by the user, returning a configuration error or a
     /// validated [`Configuration`].
@@ -165,15 +149,8 @@ pub trait ParseConfiguration {
     /// error.
     async fn parse_configuration(
         &self,
-        configuration_dir: impl AsRef<Path> + Send,
-    ) -> Result<Self::Configuration>;
-}
-
-/// Initializes the connector state.
-#[async_trait]
-pub trait InitState: Send + Sync {
-    type Configuration;
-    type State;
+        configuration_dir: &Path,
+    ) -> Result<<Self::Connector as Connector>::Configuration>;
 
     /// Initialize the connector's in-memory state.
     ///
@@ -186,7 +163,7 @@ pub trait InitState: Send + Sync {
     /// This may be called repeatedly until it succeeds.
     async fn try_init_state(
         &self,
-        configuration: &Self::Configuration,
+        configuration: &<Self::Connector as Connector>::Configuration,
         metrics: &mut prometheus::Registry,
-    ) -> Result<Self::State>;
+    ) -> Result<<Self::Connector as Connector>::State>;
 }

@@ -10,21 +10,15 @@ use super::*;
 pub struct Example {}
 
 #[async_trait]
-impl ParseConfiguration for Example {
-    type Configuration = ();
+impl ConnectorSetup for Example {
+    type Connector = Self;
 
     async fn parse_configuration(
         &self,
-        _configuration_dir: impl AsRef<Path> + Send,
+        _configuration_dir: &Path,
     ) -> Result<<Self as Connector>::Configuration> {
         Ok(())
     }
-}
-
-#[async_trait]
-impl InitState for Example {
-    type Configuration = ();
-    type State = ();
 
     async fn try_init_state(
         &self,
@@ -33,11 +27,6 @@ impl InitState for Example {
     ) -> Result<<Self as Connector>::State> {
         Ok(())
     }
-}
-
-#[async_trait]
-impl ConnectorSetup for Example {
-    type Connector = Self;
 }
 
 #[async_trait]
@@ -136,7 +125,7 @@ mod tests {
     #[tokio::test]
     async fn capabilities_match_ndc_spec_version() -> Result<()> {
         let state =
-            crate::default_main::init_server_state(Example::default(), PathBuf::new()).await?;
+            crate::default_main::init_server_state(Example::default(), &PathBuf::new()).await?;
         let app = crate::default_main::create_router::<Example>(state, None, None);
 
         let client = TestClient::new(app);

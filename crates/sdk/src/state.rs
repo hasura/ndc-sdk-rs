@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::OnceCell;
 
 use crate::connector::error::*;
-use crate::connector::{Connector, InitState};
+use crate::connector::{Connector, ConnectorSetup};
 
 /// Everything we need to keep in memory.
 pub struct ServerState<C: Connector> {
@@ -15,7 +15,7 @@ pub struct ServerState<C: Connector> {
 /// The connector state, which may or may not be initialized.
 struct ConnectorState<C: Connector> {
     cell: OnceCell<C::State>,
-    init_state: Box<dyn InitState<Configuration = C::Configuration, State = C::State>>,
+    init_state: Box<dyn ConnectorSetup<Connector = C>>,
 }
 
 // Server state must be cloneable even if the underlying connector is not.
@@ -39,7 +39,7 @@ impl<C: Connector> ServerState<C> {
     /// Construct a new server state.
     pub fn new(
         configuration: C::Configuration,
-        init_state: impl InitState<Configuration = C::Configuration, State = C::State> + 'static,
+        init_state: impl ConnectorSetup<Connector = C> + 'static,
         metrics: prometheus::Registry,
     ) -> Self {
         Self {
