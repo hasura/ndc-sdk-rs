@@ -147,7 +147,7 @@ pub trait ConnectorSetup:
         State = <Self::Connector as Connector>::State,
     > + 'static
 {
-    type Connector: Connector<Configuration: Clone, State: Clone> + 'static;
+    type Connector: Connector;
 }
 
 #[async_trait]
