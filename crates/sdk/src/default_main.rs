@@ -26,6 +26,7 @@ use crate::connector::{Connector, ConnectorSetup, ErrorResponse, Result};
 use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
+use crate::state::ServerState;
 use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
@@ -138,37 +139,6 @@ struct CheckHealthCommand {
 
 type Port = u16;
 
-#[derive(Debug)]
-pub struct ServerState<C: Connector> {
-    configuration: C::Configuration,
-    state: C::State,
-    metrics: Registry,
-}
-
-impl<C: Connector> Clone for ServerState<C>
-where
-    C::Configuration: Clone,
-    C::State: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            configuration: self.configuration.clone(),
-            state: self.state.clone(),
-            metrics: self.metrics.clone(),
-        }
-    }
-}
-
-impl<C: Connector> ServerState<C> {
-    pub fn new(configuration: C::Configuration, state: C::State, metrics: Registry) -> Self {
-        Self {
-            configuration,
-            state,
-            metrics,
-        }
-    }
-}
-
 /// A default main function for a connector.
 ///
 /// The intent is that this function can replace your `main` function
@@ -241,11 +211,11 @@ where
     )
     .expect("Unable to initialize tracing");
 
-    let server_state = init_server_state(setup, serve_command.configuration).await?;
+    let server_state = init_server_state(setup, &serve_command.configuration).await?;
 
     let router = create_router::<Setup::Connector>(
-        server_state.clone(),
-        serve_command.service_token_secret.clone(),
+        server_state,
+        serve_command.service_token_secret,
         serve_command.max_request_size,
     );
 
@@ -290,12 +260,11 @@ where
 /// Initialize the server state from the configuration file.
 pub async fn init_server_state<Setup: ConnectorSetup>(
     setup: Setup,
-    config_directory: impl AsRef<Path> + Send,
+    config_directory: &Path,
 ) -> Result<ServerState<Setup::Connector>> {
-    let mut metrics = Registry::new();
+    let metrics = Registry::new();
     let configuration = setup.parse_configuration(config_directory).await?;
-    let state = setup.try_init_state(&configuration, &mut metrics).await?;
-    Ok(ServerState::new(configuration, state, metrics))
+    Ok(ServerState::new(configuration, setup, metrics))
 }
 
 pub fn create_router<C>(
@@ -385,7 +354,7 @@ fn auth_handler(
 }
 
 async fn get_metrics<C: Connector>(State(state): State<ServerState<C>>) -> Result<String> {
-    fetch_metrics::<C>(&state.configuration, &state.state, &state.metrics)
+    fetch_metrics::<C>(state.configuration(), state.state().await?, state.metrics())
 }
 
 async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
@@ -398,41 +367,41 @@ async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> 
 }
 
 async fn get_health_readiness<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
-    C::get_health_readiness(&state.configuration, &state.state).await
+    C::get_health_readiness(state.configuration(), state.state().await?).await
 }
 
 async fn get_schema<C: Connector>(
     State(state): State<ServerState<C>>,
 ) -> Result<JsonResponse<SchemaResponse>> {
-    C::get_schema(&state.configuration).await
+    C::get_schema(state.configuration()).await
 }
 
 async fn post_query_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<ExplainResponse>> {
-    C::query_explain(&state.configuration, &state.state, request).await
+    C::query_explain(state.configuration(), state.state().await?, request).await
 }
 
 async fn post_mutation_explain<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
 ) -> Result<JsonResponse<ExplainResponse>> {
-    C::mutation_explain(&state.configuration, &state.state, request).await
+    C::mutation_explain(state.configuration(), state.state().await?, request).await
 }
 
 async fn post_mutation<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<MutationRequest>, JsonRejection>,
 ) -> Result<JsonResponse<MutationResponse>> {
-    C::mutation(&state.configuration, &state.state, request).await
+    C::mutation(state.configuration(), state.state().await?, request).await
 }
 
 async fn post_query<C: Connector>(
     State(state): State<ServerState<C>>,
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<QueryResponse>> {
-    C::query(&state.configuration, &state.state, request).await
+    C::query(state.configuration(), state.state().await?, request).await
 }
 
 #[cfg(feature = "ndc-test")]
@@ -489,7 +458,7 @@ mod ndc_test_commands {
         }
     }
 
-    pub(super) async fn test<Setup: super::ConnectorSetup>(
+    pub(super) async fn test<Setup: ConnectorSetup>(
         setup: Setup,
         command: super::TestCommand,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -517,7 +486,7 @@ mod ndc_test_commands {
         Ok(())
     }
 
-    pub(super) async fn replay<Setup: super::ConnectorSetup>(
+    pub(super) async fn replay<Setup: ConnectorSetup>(
         setup: Setup,
         command: super::ReplayCommand,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -581,7 +550,7 @@ mod ndc_test_commands {
         configuration_path: PathBuf,
     ) -> Result<ConnectorAdapter<Setup::Connector>, Box<dyn Error + Send + Sync>> {
         let mut metrics = Registry::new();
-        let configuration = setup.parse_configuration(configuration_path).await?;
+        let configuration = setup.parse_configuration(&configuration_path).await?;
         let state = setup.try_init_state(&configuration, &mut metrics).await?;
         Ok(ConnectorAdapter {
             configuration,

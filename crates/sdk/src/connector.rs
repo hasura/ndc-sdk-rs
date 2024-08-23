@@ -38,11 +38,11 @@ pub use error::*;
 /// a connection string would be configuration, but a connection pool object
 /// created from that connection string would be state.
 #[async_trait]
-pub trait Connector: Send {
+pub trait Connector: Send + 'static {
     /// The type of validated configuration
-    type Configuration: Sync + Send;
+    type Configuration: Send + Sync;
     /// The type of unserializable state
-    type State: Sync + Send;
+    type State: Send + Sync;
 
     /// Update any metrics from the state
     ///
@@ -135,22 +135,21 @@ pub trait Connector: Send {
 
 /// Connectors are set up by values that implement this trait.
 ///
-/// It provides a method for parsing configuration, and another for initializing
-/// state.
+/// It provides a method for parsing configuration, and another for initializing state.
 ///
 /// See [`Connector`] for further details.
 #[async_trait]
-pub trait ConnectorSetup {
+pub trait ConnectorSetup: Send + Sync + 'static {
     type Connector: Connector;
 
     /// Validate the configuration provided by the user, returning a configuration error or a
-    /// validated [`Connector::Configuration`].
+    /// validated [`Configuration`].
     ///
     /// The [`ParseError`] type is provided as a convenience to connector authors, to be used on
     /// error.
     async fn parse_configuration(
         &self,
-        configuration_dir: impl AsRef<Path> + Send,
+        configuration_dir: &Path,
     ) -> Result<<Self::Connector as Connector>::Configuration>;
 
     /// Initialize the connector's in-memory state.
@@ -160,6 +159,8 @@ pub trait ConnectorSetup {
     ///
     /// In addition, this function should register any connector-specific metrics with the metrics
     /// registry.
+    ///
+    /// This may be called repeatedly until it succeeds.
     async fn try_init_state(
         &self,
         configuration: &<Self::Connector as Connector>::Configuration,
