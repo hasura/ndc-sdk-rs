@@ -135,10 +135,13 @@ pub trait Connector: Send {
 
 /// Connectors are set up by values that implement this trait.
 ///
-/// It provides a method for parsing configuration, and another for initializing
-/// state.
+/// It provides a method for parsing configuration, and another for initializing state.
 ///
 /// See [`Connector`] for further details.
+//
+// This is actually split into [`ParseConfiguration`] and [`InitState`], because this makes it
+// possible to pass around a `Box<dyn InitState>` internally. This is not ideal and we would prefer
+// to merge these back into a single trait.
 #[async_trait]
 pub trait ConnectorSetup:
     ParseConfiguration<Configuration = <Self::Connector as Connector>::Configuration>
@@ -150,12 +153,13 @@ pub trait ConnectorSetup:
     type Connector: Connector;
 }
 
+/// Reads configuration from a directory and returns the specified configuration.
 #[async_trait]
 pub trait ParseConfiguration {
     type Configuration;
 
     /// Validate the configuration provided by the user, returning a configuration error or a
-    /// validated [`Connector::Configuration`].
+    /// validated [`Configuration`].
     ///
     /// The [`ParseError`] type is provided as a convenience to connector authors, to be used on
     /// error.
@@ -165,6 +169,7 @@ pub trait ParseConfiguration {
     ) -> Result<Self::Configuration>;
 }
 
+/// Initializes the connector state.
 #[async_trait]
 pub trait InitState: Send + Sync {
     type Configuration;
@@ -177,6 +182,8 @@ pub trait InitState: Send + Sync {
     ///
     /// In addition, this function should register any connector-specific metrics with the metrics
     /// registry.
+    ///
+    /// This may be called repeatedly until it succeeds.
     async fn try_init_state(
         &self,
         configuration: &Self::Configuration,

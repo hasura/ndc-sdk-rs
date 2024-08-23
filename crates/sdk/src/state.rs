@@ -8,12 +8,12 @@ use crate::connector::{Connector, InitState};
 /// Everything we need to keep in memory.
 pub struct ServerState<C: Connector> {
     configuration: C::Configuration,
-    state: Arc<ApplicationState<C>>,
+    state: Arc<ConnectorState<C>>,
     metrics: prometheus::Registry,
 }
 
-/// The application state, which may or may not be initialized.
-struct ApplicationState<C: Connector> {
+/// The connector state, which may or may not be initialized.
+struct ConnectorState<C: Connector> {
     cell: OnceCell<C::State>,
     init_state: Box<dyn InitState<Configuration = C::Configuration, State = C::State>>,
 }
@@ -44,7 +44,7 @@ impl<C: Connector> ServerState<C> {
     ) -> Self {
         Self {
             configuration,
-            state: Arc::new(ApplicationState {
+            state: Arc::new(ConnectorState {
                 cell: OnceCell::new(),
                 init_state: Box::new(init_state),
             }),
