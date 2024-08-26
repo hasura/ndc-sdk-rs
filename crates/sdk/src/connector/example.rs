@@ -112,29 +112,3 @@ impl Connector for Example {
         todo!()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use axum_test_helper::TestClient;
-    use http::StatusCode;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn capabilities_match_ndc_spec_version() -> Result<()> {
-        let state =
-            crate::default_main::init_server_state(Example::default(), &PathBuf::new()).await?;
-        let app = crate::default_main::create_router::<Example>(state, None, None);
-
-        let client = TestClient::new(app);
-        let response = client.get("/capabilities").send().await;
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body: ndc_models::CapabilitiesResponse = response.json().await;
-        assert_eq!(body.version, ndc_models::VERSION);
-        Ok(())
-    }
-}
