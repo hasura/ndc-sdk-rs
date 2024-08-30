@@ -195,7 +195,7 @@ where
     match command {
         Command::Serve(serve_command) => serve(setup, serve_command).await,
         Command::PrintSchemaAndCapabilities(command) => {
-            print_schema_and_capabilities(setup, command).await
+            print_schema_and_capabilities(setup, &command.configuration).await
         }
         Command::CheckHealth(check_health_command) => check_health(check_health_command).await,
         #[cfg(feature = "ndc-test")]
@@ -415,9 +415,10 @@ async fn post_query<C: Connector>(
     C::query(state.configuration(), state.state().await?, request).await
 }
 
-async fn print_schema_and_capabilities<Setup>(
+/// Prints a JSON object to stdout containing the ndc schema and capabilities of the connector
+pub async fn print_schema_and_capabilities<Setup>(
     setup: Setup,
-    command: PrintSchemaAndCapabilitiesCommand,
+    config_directory: &Path,
 ) -> Result<()>
 where
     Setup: ConnectorSetup,
@@ -425,12 +426,13 @@ where
     <Setup::Connector as Connector>::Configuration: Clone,
     <Setup::Connector as Connector>::State: Clone,
 {
-    let server_state = init_server_state(setup, &command.configuration).await?;
+    let server_state = init_server_state(setup, config_directory).await?;
 
     let schema = Setup::Connector::get_schema(server_state.configuration()).await?;
     let capabilities = get_capabilities::<Setup::Connector>().await;
 
-    print_json_schema_and_capabilities(schema, capabilities)?;
+    let mut stdout = io::stdout().lock();
+    print_json_schema_and_capabilities(&mut stdout, schema, capabilities)?;
 
     Ok(())
 }
@@ -438,16 +440,16 @@ where
 /// This foulness manually writes out a JSON object with schema and capabilities properties.
 /// We do it like this to avoid having to deserialize and reserialize any
 /// JsonResponse::Serialized values.
-fn print_json_schema_and_capabilities(
+fn print_json_schema_and_capabilities<W: Write>(
+    mut writer: W,
     schema: JsonResponse<ndc_models::SchemaResponse>,
     capabilities: JsonResponse<ndc_models::CapabilitiesResponse>,
 ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut stdout = io::stdout().lock();
-    write!(stdout, r#"{{"schema":"#)?;
-    write_json_response(&mut stdout, schema)?;
-    write!(stdout, r#","capabilities":"#)?;
-    write_json_response(&mut stdout, capabilities)?;
-    writeln!(stdout, r#"}}"#)?;
+    write!(writer, r#"{{"schema":"#)?;
+    write_json_response(&mut writer, schema)?;
+    write!(writer, r#","capabilities":"#)?;
+    write_json_response(&mut writer, capabilities)?;
+    writeln!(writer, r#"}}"#)?;
 
     Ok(())
 }
@@ -627,5 +629,34 @@ async fn check_health(CheckHealthCommand { host, port }: CheckHealthCommand) -> 
             println!("Health check failed.");
             Err(err.into())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use crate::connector::{example::Example, Connector};
+
+    use super::{get_capabilities, print_json_schema_and_capabilities};
+
+    #[derive(Debug, serde::Deserialize)]
+    #[allow(dead_code)]
+    struct SchemaAndCapabilities {
+        pub schema: ndc_models::SchemaResponse,
+        pub capabilities: ndc_models::CapabilitiesResponse,
+    }
+
+    #[test]
+    fn test_print_json_schema_and_capabilities_is_valid_json() {
+        tokio_test::block_on(async {
+            let mut bytes = Cursor::new(vec![]);
+            let schema = Example::get_schema(&()).await.unwrap();
+            let capabilities = get_capabilities::<Example>().await;
+            print_json_schema_and_capabilities(&mut bytes, schema, capabilities).unwrap();
+
+            let bytes = bytes.into_inner();
+            serde_json::from_slice::<SchemaAndCapabilities>(&bytes).unwrap();
+        });
     }
 }
