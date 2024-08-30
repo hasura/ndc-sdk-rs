@@ -1,5 +1,5 @@
-use std::net;
 use std::path::{Path, PathBuf};
+use std::{io, io::Write, net};
 
 use axum::{
     body::Body,
@@ -40,6 +40,8 @@ enum Command {
     #[command()]
     Serve(ServeCommand),
     #[command()]
+    PrintSchemaAndCapabilities(PrintSchemaAndCapabilitiesCommand),
+    #[command()]
     #[cfg(feature = "ndc-test")]
     Test(TestCommand),
     #[command()]
@@ -79,6 +81,12 @@ struct ServeCommand {
     service_name: Option<String>,
     #[arg(long, value_name = "MAX_REQUEST_SIZE", env = "HASURA_MAX_REQUEST_SIZE")]
     max_request_size: Option<usize>,
+}
+
+#[derive(Clone, Parser)]
+struct PrintSchemaAndCapabilitiesCommand {
+    #[arg(long, value_name = "DIRECTORY", env = "HASURA_CONFIGURATION_DIRECTORY")]
+    configuration: PathBuf,
 }
 
 #[derive(Clone, Parser)]
@@ -186,6 +194,9 @@ where
 
     match command {
         Command::Serve(serve_command) => serve(setup, serve_command).await,
+        Command::PrintSchemaAndCapabilities(command) => {
+            print_schema_and_capabilities(setup, command).await
+        }
         Command::CheckHealth(check_health_command) => check_health(check_health_command).await,
         #[cfg(feature = "ndc-test")]
         Command::Test(test_command) => Ok(ndc_test_commands::test(setup, test_command).await?),
@@ -402,6 +413,53 @@ async fn post_query<C: Connector>(
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<QueryResponse>> {
     C::query(state.configuration(), state.state().await?, request).await
+}
+
+async fn print_schema_and_capabilities<Setup>(
+    setup: Setup,
+    command: PrintSchemaAndCapabilitiesCommand,
+) -> Result<()>
+where
+    Setup: ConnectorSetup,
+    Setup::Connector: Connector + 'static,
+    <Setup::Connector as Connector>::Configuration: Clone,
+    <Setup::Connector as Connector>::State: Clone,
+{
+    let server_state = init_server_state(setup, &command.configuration).await?;
+
+    let schema = Setup::Connector::get_schema(server_state.configuration()).await?;
+    let capabilities = get_capabilities::<Setup::Connector>().await;
+
+    print_json_schema_and_capabilities(schema, capabilities)?;
+
+    Ok(())
+}
+
+/// This foulness manually writes out a JSON object with schema and capabilities properties.
+/// We do it like this to avoid having to deserialize and reserialize any
+/// JsonResponse::Serialized values.
+fn print_json_schema_and_capabilities(
+    schema: JsonResponse<ndc_models::SchemaResponse>,
+    capabilities: JsonResponse<ndc_models::CapabilitiesResponse>,
+) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut stdout = io::stdout().lock();
+    write!(stdout, r#"{{"schema":"#)?;
+    write_json_response(&mut stdout, schema)?;
+    write!(stdout, r#","capabilities":"#)?;
+    write_json_response(&mut stdout, capabilities)?;
+    writeln!(stdout, r#"}}"#)?;
+
+    Ok(())
+}
+
+fn write_json_response<W: Write, A: serde::Serialize>(
+    writer: &mut W,
+    json: JsonResponse<A>,
+) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    match json {
+        JsonResponse::Value(value) => Ok(serde_json::to_writer(writer, &value)?),
+        JsonResponse::Serialized(bytes) => Ok(writer.write_all(&bytes)?),
+    }
 }
 
 #[cfg(feature = "ndc-test")]
