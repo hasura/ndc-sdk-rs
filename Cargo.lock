@@ -982,14 +982,11 @@ dependencies = [
 name = "ndc-sdk"
 version = "0.4.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "axum",
  "axum-extra",
- "bytes",
  "clap",
  "http",
- "mime",
  "ndc-models",
  "ndc-sdk-core",
  "ndc-test",
@@ -1001,11 +998,9 @@ dependencies = [
  "opentelemetry_sdk",
  "prometheus",
  "reqwest",
- "serde",
  "serde_json",
  "thiserror",
  "tokio",
- "tokio-test",
  "tower-http",
  "tracing",
  "tracing-opentelemetry",
