@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
-use std::{io, io::Write, net};
+use std::path::PathBuf;
+use std::{io, net};
 
 use axum::{
     body::Body,
@@ -11,14 +11,13 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
-use prometheus::Registry;
+use ndc_sdk_core::schema::{get_capabilities, print_schema_and_capabilities};
 use tower_http::{
     limit::RequestBodyLimitLayer, trace::TraceLayer, validate_request::ValidateRequestHeaderLayer,
 };
 
 use ndc_models::{
-    CapabilitiesResponse, ExplainResponse, MutationRequest, MutationResponse, QueryRequest,
-    QueryResponse, SchemaResponse,
+    ExplainResponse, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse,
 };
 
 use crate::check_health;
@@ -26,7 +25,7 @@ use crate::connector::{Connector, ConnectorSetup, ErrorResponse, Result};
 use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
-use crate::state::ServerState;
+use crate::state::{init_server_state, ServerState};
 use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
@@ -195,7 +194,8 @@ where
     match command {
         Command::Serve(serve_command) => serve(setup, serve_command).await,
         Command::PrintSchemaAndCapabilities(command) => {
-            print_schema_and_capabilities(setup, &command.configuration).await
+            let mut stdout = io::stdout().lock();
+            print_schema_and_capabilities(setup, &command.configuration, &mut stdout).await
         }
         Command::CheckHealth(check_health_command) => check_health(check_health_command).await,
         #[cfg(feature = "ndc-test")]
@@ -266,16 +266,6 @@ where
         .map_err(ErrorResponse::from_error)?;
 
     Ok(())
-}
-
-/// Initialize the server state from the configuration file.
-pub async fn init_server_state<Setup: ConnectorSetup>(
-    setup: Setup,
-    config_directory: &Path,
-) -> Result<ServerState<Setup::Connector>> {
-    let metrics = Registry::new();
-    let configuration = setup.parse_configuration(config_directory).await?;
-    Ok(ServerState::new(configuration, setup, metrics))
 }
 
 pub fn create_router<C>(
@@ -368,15 +358,6 @@ async fn get_metrics<C: Connector>(State(state): State<ServerState<C>>) -> Resul
     fetch_metrics::<C>(state.configuration(), state.state().await?, state.metrics())
 }
 
-async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
-    let capabilities = C::get_capabilities().await;
-    CapabilitiesResponse {
-        version: ndc_models::VERSION.into(),
-        capabilities,
-    }
-    .into()
-}
-
 async fn get_health_readiness<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {
     C::get_health_readiness(state.configuration(), state.state().await?).await
 }
@@ -413,55 +394,6 @@ async fn post_query<C: Connector>(
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<QueryResponse>> {
     C::query(state.configuration(), state.state().await?, request).await
-}
-
-/// Prints a JSON object to stdout containing the ndc schema and capabilities of the connector
-pub async fn print_schema_and_capabilities<Setup>(
-    setup: Setup,
-    config_directory: &Path,
-) -> Result<()>
-where
-    Setup: ConnectorSetup,
-    Setup::Connector: Connector + 'static,
-    <Setup::Connector as Connector>::Configuration: Clone,
-    <Setup::Connector as Connector>::State: Clone,
-{
-    let server_state = init_server_state(setup, config_directory).await?;
-
-    let schema = Setup::Connector::get_schema(server_state.configuration()).await?;
-    let capabilities = get_capabilities::<Setup::Connector>().await;
-
-    let mut stdout = io::stdout().lock();
-    print_json_schema_and_capabilities(&mut stdout, schema, capabilities)?;
-
-    Ok(())
-}
-
-/// This foulness manually writes out a JSON object with schema and capabilities properties.
-/// We do it like this to avoid having to deserialize and reserialize any
-/// JsonResponse::Serialized values.
-fn print_json_schema_and_capabilities<W: Write>(
-    mut writer: W,
-    schema: JsonResponse<ndc_models::SchemaResponse>,
-    capabilities: JsonResponse<ndc_models::CapabilitiesResponse>,
-) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    write!(writer, r#"{{"schema":"#)?;
-    write_json_response(&mut writer, schema)?;
-    write!(writer, r#","capabilities":"#)?;
-    write_json_response(&mut writer, capabilities)?;
-    writeln!(writer, r#"}}"#)?;
-
-    Ok(())
-}
-
-fn write_json_response<W: Write, A: serde::Serialize>(
-    writer: &mut W,
-    json: JsonResponse<A>,
-) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    match json {
-        JsonResponse::Value(value) => Ok(serde_json::to_writer(writer, &value)?),
-        JsonResponse::Serialized(bytes) => Ok(writer.write_all(&bytes)?),
-    }
 }
 
 #[cfg(feature = "ndc-test")]
@@ -629,34 +561,5 @@ async fn check_health(CheckHealthCommand { host, port }: CheckHealthCommand) -> 
             println!("Health check failed.");
             Err(err.into())
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::io::Cursor;
-
-    use crate::connector::{example::Example, Connector};
-
-    use super::{get_capabilities, print_json_schema_and_capabilities};
-
-    #[derive(Debug, serde::Deserialize)]
-    #[allow(dead_code)]
-    struct SchemaAndCapabilities {
-        pub schema: ndc_models::SchemaResponse,
-        pub capabilities: ndc_models::CapabilitiesResponse,
-    }
-
-    #[test]
-    fn test_print_json_schema_and_capabilities_is_valid_json() {
-        tokio_test::block_on(async {
-            let mut bytes = Cursor::new(vec![]);
-            let schema = Example::get_schema(&()).await.unwrap();
-            let capabilities = get_capabilities::<Example>().await;
-            print_json_schema_and_capabilities(&mut bytes, schema, capabilities).unwrap();
-
-            let bytes = bytes.into_inner();
-            serde_json::from_slice::<SchemaAndCapabilities>(&bytes).unwrap();
-        });
     }
 }

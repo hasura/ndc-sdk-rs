@@ -991,6 +991,7 @@ dependencies = [
  "http",
  "mime",
  "ndc-models",
+ "ndc-sdk-core",
  "ndc-test",
  "opentelemetry",
  "opentelemetry-http",
@@ -1010,6 +1011,28 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "url",
+]
+
+[[package]]
+name = "ndc-sdk-core"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "bytes",
+ "http",
+ "mime",
+ "ndc-models",
+ "ndc-test",
+ "prometheus",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-test",
+ "tracing",
 ]
 
 [[package]]
