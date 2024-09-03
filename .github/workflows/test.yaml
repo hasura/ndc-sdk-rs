@@ -24,3 +24,13 @@ jobs:
 
       - name: run tests
         run: cargo test --release --all-targets --all-features
+
+      - name: check openssl is not a dependency of ndc-sdk-core
+        run: |
+          output=$(cargo tree -i openssl --no-dedupe --no-default-features -e no-dev) 
+          echo "$output"
+          if echo "$output" | grep -q ndc-sdk-core; then
+            echo "openssl was found as a dependency of ndc-sdk-core"
+            echo "This should be fixed. openssl dependencies make it hard to make binaries with minimal dynamically linked dependencies such as connector CLI plugins"
+            exit 1
+          fi
