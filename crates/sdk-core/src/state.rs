@@ -1,5 +1,7 @@
+use std::path::Path;
 use std::sync::Arc;
 
+use prometheus::Registry;
 use tokio::sync::OnceCell;
 
 use crate::connector::error::*;
@@ -78,4 +80,14 @@ impl<C: Connector> ServerState<C> {
     pub fn metrics(&self) -> &prometheus::Registry {
         &self.metrics
     }
+}
+
+/// Initialize the server state from the configuration file.
+pub async fn init_server_state<Setup: ConnectorSetup>(
+    setup: Setup,
+    config_directory: &Path,
+) -> Result<ServerState<Setup::Connector>> {
+    let metrics = Registry::new();
+    let configuration = setup.parse_configuration(config_directory).await?;
+    Ok(ServerState::new(configuration, setup, metrics))
 }

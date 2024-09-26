@@ -1,5 +1,7 @@
+#[cfg(feature = "axum")]
 use axum::response::IntoResponse;
 use bytes::Bytes;
+#[cfg(feature = "axum")]
 use http::{header, HeaderValue};
 
 /// Represents a response value that will be serialized to JSON.
@@ -27,9 +29,7 @@ impl<A: (for<'de> serde::Deserialize<'de>)> JsonResponse<A> {
     ///
     /// This is only intended for testing and compatibility. If it lives on a
     /// critical path, we recommend you avoid it.
-    pub(crate) fn into_value<E: From<Box<dyn std::error::Error + Send + Sync>>>(
-        self,
-    ) -> Result<A, E> {
+    pub fn into_value<E: From<Box<dyn std::error::Error + Send + Sync>>>(self) -> Result<A, E> {
         match self {
             Self::Value(value) => Ok(value),
             Self::Serialized(bytes) => {
@@ -39,6 +39,7 @@ impl<A: (for<'de> serde::Deserialize<'de>)> JsonResponse<A> {
     }
 }
 
+#[cfg(feature = "axum")]
 impl<A: serde::Serialize> IntoResponse for JsonResponse<A> {
     fn into_response(self) -> axum::response::Response {
         match self {

@@ -1,8 +1,11 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use axum::response::{IntoResponse, Response};
-use axum::Json;
+#[cfg(feature = "axum")]
+use axum::{
+    response::{IntoResponse, Response},
+    Json,
+};
 use http::StatusCode;
 use serde::Serialize;
 
@@ -101,6 +104,7 @@ impl From<String> for ErrorResponse {
     }
 }
 
+#[cfg(feature = "axum")]
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
         (self.status_code, Json(self.inner)).into_response()
