@@ -1,4 +1,4 @@
-# NDC TypeScript SDK Changelog
+# NDC Rust SDK Changelog
 
 This changelog documents the changes between release versions.
 
