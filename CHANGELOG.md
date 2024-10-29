@@ -6,6 +6,8 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+- add utilities to [implement PrintSchemaAndCapabilities](https://github.com/hasura/ndc-sdk-rs/pull/34). This splits the sdk into multiple crates to avoid bringing in openssl
+
 ## [0.4.0] - 2024-08-30
 
 - update ndc-spec to v0.1.6 by @soupi in https://github.com/hasura/ndc-sdk-rs/pull/28
