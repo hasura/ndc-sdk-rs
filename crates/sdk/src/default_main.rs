@@ -1,5 +1,5 @@
-use std::net;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::{io, net};
 
 use axum::{
     body::Body,
@@ -11,14 +11,13 @@ use axum::{
 };
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
-use prometheus::Registry;
+use ndc_sdk_core::schema::{get_capabilities, print_schema_and_capabilities};
 use tower_http::{
     limit::RequestBodyLimitLayer, trace::TraceLayer, validate_request::ValidateRequestHeaderLayer,
 };
 
 use ndc_models::{
-    CapabilitiesResponse, ExplainResponse, MutationRequest, MutationResponse, QueryRequest,
-    QueryResponse, SchemaResponse,
+    ExplainResponse, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse,
 };
 
 use crate::check_health;
@@ -26,7 +25,7 @@ use crate::connector::{Connector, ConnectorSetup, ErrorResponse, Result};
 use crate::fetch_metrics::fetch_metrics;
 use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
-use crate::state::ServerState;
+use crate::state::{init_server_state, ServerState};
 use crate::tracing::{init_tracing, make_span, on_response};
 
 #[derive(Parser)]
@@ -39,6 +38,8 @@ struct CliArgs {
 enum Command {
     #[command()]
     Serve(ServeCommand),
+    #[command()]
+    PrintSchemaAndCapabilities(PrintSchemaAndCapabilitiesCommand),
     #[command()]
     #[cfg(feature = "ndc-test")]
     Test(TestCommand),
@@ -79,6 +80,12 @@ struct ServeCommand {
     service_name: Option<String>,
     #[arg(long, value_name = "MAX_REQUEST_SIZE", env = "HASURA_MAX_REQUEST_SIZE")]
     max_request_size: Option<usize>,
+}
+
+#[derive(Clone, Parser)]
+struct PrintSchemaAndCapabilitiesCommand {
+    #[arg(long, value_name = "DIRECTORY", env = "HASURA_CONFIGURATION_DIRECTORY")]
+    configuration: PathBuf,
 }
 
 #[derive(Clone, Parser)]
@@ -186,6 +193,10 @@ where
 
     match command {
         Command::Serve(serve_command) => serve(setup, serve_command).await,
+        Command::PrintSchemaAndCapabilities(command) => {
+            let mut stdout = io::stdout().lock();
+            print_schema_and_capabilities(setup, &command.configuration, &mut stdout).await
+        }
         Command::CheckHealth(check_health_command) => check_health(check_health_command).await,
         #[cfg(feature = "ndc-test")]
         Command::Test(test_command) => Ok(ndc_test_commands::test(setup, test_command).await?),
@@ -255,16 +266,6 @@ where
         .map_err(ErrorResponse::from_error)?;
 
     Ok(())
-}
-
-/// Initialize the server state from the configuration file.
-pub async fn init_server_state<Setup: ConnectorSetup>(
-    setup: Setup,
-    config_directory: &Path,
-) -> Result<ServerState<Setup::Connector>> {
-    let metrics = Registry::new();
-    let configuration = setup.parse_configuration(config_directory).await?;
-    Ok(ServerState::new(configuration, setup, metrics))
 }
 
 pub fn create_router<C>(
@@ -355,15 +356,6 @@ fn auth_handler(
 
 async fn get_metrics<C: Connector>(State(state): State<ServerState<C>>) -> Result<String> {
     fetch_metrics::<C>(state.configuration(), state.state().await?, state.metrics())
-}
-
-async fn get_capabilities<C: Connector>() -> JsonResponse<CapabilitiesResponse> {
-    let capabilities = C::get_capabilities().await;
-    CapabilitiesResponse {
-        version: ndc_models::VERSION.into(),
-        capabilities,
-    }
-    .into()
 }
 
 async fn get_health_readiness<C: Connector>(State(state): State<ServerState<C>>) -> Result<()> {

@@ -982,15 +982,13 @@ dependencies = [
 name = "ndc-sdk"
 version = "0.4.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "axum",
  "axum-extra",
- "bytes",
  "clap",
  "http",
- "mime",
  "ndc-models",
+ "ndc-sdk-core",
  "ndc-test",
  "opentelemetry",
  "opentelemetry-http",
@@ -1000,7 +998,6 @@ dependencies = [
  "opentelemetry_sdk",
  "prometheus",
  "reqwest",
- "serde",
  "serde_json",
  "thiserror",
  "tokio",
@@ -1009,6 +1006,28 @@ dependencies = [
  "tracing-opentelemetry",
  "tracing-subscriber",
  "url",
+]
+
+[[package]]
+name = "ndc-sdk-core"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "bytes",
+ "http",
+ "mime",
+ "ndc-models",
+ "ndc-test",
+ "prometheus",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-test",
+ "tracing",
 ]
 
 [[package]]
@@ -2110,6 +2129,19 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "tokio-test"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2468baabc3311435b55dd935f702f42cd1b8abb7e754fb7dfb16bd36aa88f9f7"
+dependencies = [
+ "async-stream",
+ "bytes",
+ "futures-core",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]

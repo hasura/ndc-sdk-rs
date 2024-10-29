@@ -21,36 +21,33 @@ default = ["native-tls", "ndc-test"]
 native-tls = ["reqwest/native-tls"]
 rustls = ["reqwest/rustls"]
 
-ndc-test = ["dep:ndc-test"]
+ndc-test = ["dep:ndc-test", "ndc-sdk-core/ndc-test"]
 
 [dependencies]
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.6" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.6", optional = true }
+ndc-sdk-core = { path = "../sdk-core", default-features = false, features = ["axum"]}
+ndc-models = { workspace = true }
+ndc-test = { workspace = true, optional = true }
 
-async-trait = "0.1"
-axum = { version = "0.6", features = ["http2"] }
-axum-extra = "0.8"
-bytes = "1"
-clap = { version = "4", features = ["derive", "env"] }
-http = "0.2"
-mime = "0.3"
-opentelemetry = "0.22"
-opentelemetry-http = "0.11"
-opentelemetry-otlp = { version = "0.15", features = ["reqwest-client", "gzip-tonic", "tls", "tls-roots", "http-proto"] }
-opentelemetry-semantic-conventions = "0.14"
-opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
-opentelemetry-zipkin = "0.20"
-prometheus = "0.13"
-reqwest = "0.11"
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["raw_value"] }
-thiserror = "1"
-tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread", "signal"] }
-tower-http = { version = "0.4", features = ["cors", "limit", "trace", "validate-request"] }
-tracing = "0.1"
-tracing-opentelemetry = "0.23"
-tracing-subscriber = { version = "0.3", default-features = false, features = ["ansi", "env-filter", "fmt", "json"] }
-url = "2"
+async-trait = { workspace = true }
+axum = { workspace = true, features = ["http2"] }
+axum-extra = { workspace = true }
+clap = { workspace = true, features = ["derive", "env"] }
+http = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry-http = { workspace = true }
+opentelemetry-otlp = { workspace = true, features = ["reqwest-client", "gzip-tonic", "tls", "tls-roots", "http-proto"] }
+opentelemetry-semantic-conventions = { workspace = true }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
+opentelemetry-zipkin = { workspace = true }
+prometheus = { workspace = true }
+reqwest = { workspace = true }
+serde_json = { workspace = true, features = ["raw_value"] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "signal"] }
+tower-http = { workspace = true, features = ["cors", "limit", "trace", "validate-request"] }
+tracing = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+tracing-subscriber = { workspace = true, default-features = false, features = ["ansi", "env-filter", "fmt", "json"] }
+url = { workspace = true }
 
 [dev-dependencies]
-anyhow = "1"
