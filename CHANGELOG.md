@@ -6,6 +6,8 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+## [0.5.0] - 2024-10-29
+
 - add utilities to [implement PrintSchemaAndCapabilities](https://github.com/hasura/ndc-sdk-rs/pull/34). This splits the sdk into multiple crates to avoid bringing in openssl
 
 ## [0.4.0] - 2024-08-30
