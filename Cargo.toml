@@ -1,13 +1,11 @@
 [workspace]
 resolver = "2"
 
-package.version = "0.4.0"
+package.version = "0.5.0"
 package.edition = "2021"
 package.license = "Apache-2.0"
 
-members = [
-  "crates/*",
-]
+members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
@@ -24,7 +22,13 @@ http = "0.2"
 mime = "0.3"
 opentelemetry = "0.22"
 opentelemetry-http = "0.11"
-opentelemetry-otlp = { version = "0.15", features = ["reqwest-client", "gzip-tonic", "tls", "tls-roots", "http-proto"] }
+opentelemetry-otlp = { version = "0.15", features = [
+  "reqwest-client",
+  "gzip-tonic",
+  "tls",
+  "tls-roots",
+  "http-proto",
+] }
 opentelemetry-semantic-conventions = "0.14"
 opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
 opentelemetry-zipkin = "0.20"
@@ -33,12 +37,27 @@ reqwest = "0.11"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "1"
-tokio = { version = "1", features = ["fs", "macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = [
+  "fs",
+  "macros",
+  "rt-multi-thread",
+  "signal",
+] }
 tokio-test = "0.4"
-tower-http = { version = "0.4", features = ["cors", "limit", "trace", "validate-request"] }
+tower-http = { version = "0.4", features = [
+  "cors",
+  "limit",
+  "trace",
+  "validate-request",
+] }
 tracing = "0.1"
 tracing-opentelemetry = "0.23"
-tracing-subscriber = { version = "0.3", default-features = false, features = ["ansi", "env-filter", "fmt", "json"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "ansi",
+  "env-filter",
+  "fmt",
+  "json",
+] }
 url = "2"
 
 
