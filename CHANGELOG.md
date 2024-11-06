@@ -8,7 +8,9 @@ Changes to be included in the next upcoming release
 
 ## [0.5.0] - 2024-10-29
 
-- add utilities to [implement PrintSchemaAndCapabilities](https://github.com/hasura/ndc-sdk-rs/pull/34). This splits the sdk into multiple crates to avoid bringing in openssl
+- A default request size limit of 100MB was added. This can be overridden with the `HASURA_MAX_REQUEST_SIZE` environment variable ([#29](https://github.com/hasura/ndc-sdk-rs/pull/29)).
+- Connector state is now only initialized on the first request that actually uses it. This means `/capabilities`, `/schema` and `/health` can be used even if state initialization would otherwise fail ([#31](https://github.com/hasura/ndc-sdk-rs/pull/31)).
+- Add utilities to [implement PrintSchemaAndCapabilities](https://github.com/hasura/ndc-sdk-rs/pull/34). This splits the sdk into multiple crates to avoid bringing in openssl
 
 ## [0.4.0] - 2024-08-30
 
