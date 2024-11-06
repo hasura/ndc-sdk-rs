@@ -6,6 +6,10 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+**Breaking changes** ([#38](https://github.com/hasura/ndc-sdk-rs/pull/38)):
+- Updated to support [v0.2.0 of the NDC Spec](https://hasura.github.io/ndc-spec/specification/changelog.html#020). This is a very large update which adds new features and some breaking changes.
+- If the [`X-Hasura-NDC-Version`](https://hasura.github.io/ndc-spec/specification/versioning.html) header is sent, the SDK will validate that the connector supports the incoming request's version and reject it if it does not. If no header is sent, no action is taken.
+
 ## [0.5.0] - 2024-10-29
 
 - A default request size limit of 100MB was added. This can be overridden with the `HASURA_MAX_REQUEST_SIZE` environment variable ([#29](https://github.com/hasura/ndc-sdk-rs/pull/29)).
