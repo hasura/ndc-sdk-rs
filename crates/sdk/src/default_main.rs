@@ -12,6 +12,7 @@ use axum::{
 use axum_extra::extract::WithRejection;
 use clap::{Parser, Subcommand};
 use ndc_sdk_core::schema::{get_capabilities, print_schema_and_capabilities};
+use serde_json::json;
 use tower_http::{
     limit::RequestBodyLimitLayer, trace::TraceLayer, validate_request::ValidateRequestHeaderLayer,
 };
@@ -295,6 +296,7 @@ where
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
             service_token_secret,
         )))
+        .layer(ValidateRequestHeaderLayer::custom(check_version_header))
         .route("/health", get(get_health_readiness::<C>)) // health checks are not authenticated
         .with_state(state)
         .layer(
@@ -352,6 +354,58 @@ fn auth_handler(
         )
         .into_response())
     }
+}
+
+fn check_version_header(
+    request: &mut Request<Body>,
+) -> std::result::Result<(), axum::response::Response> {
+    if let Some(version) = request.headers().get(ndc_models::VERSION_HEADER_NAME) {
+        let Ok(version) = version.to_str() else {
+            return Err(ErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                format!(
+                    "Invalid {} header, expected a semver version string",
+                    ndc_models::VERSION_HEADER_NAME
+                ),
+                serde_json::Value::Null,
+            )
+            .into_response());
+        };
+
+        let Ok(wanted_version) = semver::Version::parse(version) else {
+            return Err(ErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                format!(
+                    "Invalid {} header, expected a semver version string",
+                    ndc_models::VERSION_HEADER_NAME
+                ),
+                serde_json::Value::Null,
+            )
+            .into_response());
+        };
+
+        let comparator = semver::Comparator {
+            op: semver::Op::Caret,
+            major: wanted_version.major,
+            minor: Some(wanted_version.minor),
+            patch: Some(wanted_version.patch),
+            pre: wanted_version.pre,
+        };
+
+        if !comparator.matches(&semver::Version::parse(ndc_models::VERSION).unwrap()) {
+            return Err(ErrorResponse::new(
+                StatusCode::BAD_REQUEST,
+                "The connector does not support the requested NDC version".to_owned(),
+                json!({
+                    "connectorVersion": ndc_models::VERSION_HEADER_NAME,
+                    "requestedVersionRange": format!("^{}", version)
+                }),
+            )
+            .into_response());
+        }
+    }
+
+    Ok(())
 }
 
 async fn get_metrics<C: Connector>(State(state): State<ServerState<C>>) -> Result<String> {

@@ -9,8 +9,8 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.6" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.1.6" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.0-rc.1" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.0-rc.1" }
 
 anyhow = "1"
 async-trait = "0.1"
@@ -34,6 +34,7 @@ opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
 opentelemetry-zipkin = "0.20"
 prometheus = "0.13"
 reqwest = "0.11"
+semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "1"

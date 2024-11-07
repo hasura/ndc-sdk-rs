@@ -41,6 +41,7 @@ opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
 opentelemetry-zipkin = { workspace = true }
 prometheus = { workspace = true }
 reqwest = { workspace = true }
+semver = { workspace = true }
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "signal"] }
