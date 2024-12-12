@@ -22,7 +22,7 @@ cargo build
 
 ```sh
 mkdir empty
-cargo run --bin ndc_hub_example -- --configuration ./empty
+cargo run --bin ndc_hub_example serve --configuration ./empty
 ```
 
 Inspect the resulting (empty) schema:
