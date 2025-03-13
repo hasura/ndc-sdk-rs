@@ -16,7 +16,7 @@ jobs:
       - name: install tools
         run: |
           rustup show
-          cargo install cargo-machete
+          cargo install cargo-machete@0.7.0 # version 0.8.0 requires Rust 1.85.0
 
       - uses: Swatinem/rust-cache@v2
         with:
