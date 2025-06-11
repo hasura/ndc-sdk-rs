@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use async_trait::async_trait;
+use ndc_models::RequestLevelArguments;
 use tracing::info_span;
 use tracing::Instrument;
 
@@ -83,6 +84,11 @@ impl Connector for Example {
             object_types: BTreeMap::new(),
             scalar_types: BTreeMap::new(),
             capabilities: None,
+            request_arguments: RequestLevelArguments {
+                query_arguments: BTreeMap::new(),
+                mutation_arguments: BTreeMap::new(),
+                relational_query_arguments: BTreeMap::new(),
+            },
         }
         .into())
     }

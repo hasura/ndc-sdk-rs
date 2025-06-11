@@ -9,8 +9,8 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.3" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.3" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", rev = "3fdff9e" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", rev = "3fdff9e" }
 
 anyhow = "1"
 async-trait = "0.1"

@@ -99,6 +99,12 @@ struct TestCommand {
     snapshots_dir: Option<PathBuf>,
     #[arg(long, help = "Turn off validations for query responses")]
     no_validate_responses: bool,
+    #[arg(
+        long,
+        value_name = "REQUEST_ARGUMENTS_PATH",
+        help = "path to a JSON file containing any request arguments to use in the generated tests"
+    )]
+    request_arguments_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Parser)]
@@ -508,11 +514,20 @@ mod ndc_test_commands {
         setup: Setup,
         command: super::TestCommand,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let request_arguments = if let Some(request_arguments_path) = command.request_arguments_path
+        {
+            let request_arguments = std::fs::read_to_string(request_arguments_path).unwrap();
+            serde_json::from_str(&request_arguments).unwrap()
+        } else {
+            ndc_test::configuration::RequestArguments { query: None }
+        };
+
         let test_configuration = ndc_test::configuration::TestConfiguration {
             seed: command.seed.map(|s| s.as_bytes().try_into()).transpose()?,
             snapshots_dir: command.snapshots_dir,
             options: ndc_test::configuration::TestOptions {
                 validate_responses: !command.no_validate_responses,
+                request_arguments,
             },
             gen_config: ndc_test::configuration::TestGenerationConfiguration::default(),
         };
@@ -539,6 +554,7 @@ mod ndc_test_commands {
         let connector = make_connector_adapter(setup, command.configuration).await?;
         let options = ndc_test::configuration::TestOptions {
             validate_responses: !command.no_validate_responses,
+            request_arguments: ndc_test::configuration::RequestArguments { query: None },
         };
         let mut reporter = (ConsoleReporter::new(), TestResults::default());
 
