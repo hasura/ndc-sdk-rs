@@ -62,6 +62,8 @@ impl Connector for Example {
                 transactional: None,
                 explain: None,
             },
+            relational_query: None,
+            relational_mutation: None,
         }
     }
 
