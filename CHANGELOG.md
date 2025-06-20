@@ -6,6 +6,8 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+- Update to support v0.2.4 of the NDC Spec.
+
 ## [0.6.0]
 
 **Breaking changes** ([#38](https://github.com/hasura/ndc-sdk-rs/pull/38), [#40](https://github.com/hasura/ndc-sdk-rs/pull/40), [#41](https://github.com/hasura/ndc-sdk-rs/pull/41), [#42](https://github.com/hasura/ndc-sdk-rs/pull/42)):
