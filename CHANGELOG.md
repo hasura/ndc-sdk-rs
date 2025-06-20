@@ -6,6 +6,8 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+## [0.7.0]
+
 - Update to support v0.2.4 of the NDC Spec.
 
 ## [0.6.0]
