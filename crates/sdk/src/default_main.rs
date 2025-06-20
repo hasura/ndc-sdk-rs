@@ -513,6 +513,7 @@ mod ndc_test_commands {
             snapshots_dir: command.snapshots_dir,
             options: ndc_test::configuration::TestOptions {
                 validate_responses: !command.no_validate_responses,
+                request_arguments: ndc_test::configuration::RequestArguments { query: None },
             },
             gen_config: ndc_test::configuration::TestGenerationConfiguration::default(),
         };
@@ -539,6 +540,7 @@ mod ndc_test_commands {
         let connector = make_connector_adapter(setup, command.configuration).await?;
         let options = ndc_test::configuration::TestOptions {
             validate_responses: !command.no_validate_responses,
+            request_arguments: ndc_test::configuration::RequestArguments { query: None },
         };
         let mut reporter = (ConsoleReporter::new(), TestResults::default());
 
