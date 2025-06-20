@@ -62,6 +62,8 @@ impl Connector for Example {
                 transactional: None,
                 explain: None,
             },
+            relational_mutation: None,
+            relational_query: None,
         }
     }
 
@@ -81,6 +83,7 @@ impl Connector for Example {
             object_types: BTreeMap::new(),
             scalar_types: BTreeMap::new(),
             capabilities: None,
+            request_arguments: None,
         }
         .into())
     }

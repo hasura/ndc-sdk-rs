@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-package.version = "0.6.0"
+package.version = "0.7.0"
 package.edition = "2021"
 package.license = "Apache-2.0"
 
@@ -9,8 +9,8 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.0" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.0" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.4" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.4" }
 
 anyhow = "1"
 async-trait = "0.1"
