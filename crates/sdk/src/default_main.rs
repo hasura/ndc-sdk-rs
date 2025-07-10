@@ -28,6 +28,7 @@ use crate::json_rejection::JsonRejection;
 use crate::json_response::JsonResponse;
 use crate::state::{init_server_state, ServerState};
 use crate::tracing::{init_tracing, make_span, on_response};
+use tower_http::compression::CompressionLayer;
 
 #[derive(Parser)]
 struct CliArgs {
@@ -314,6 +315,11 @@ where
                     );
                 }),
         )
+        // Add compression layer to support zstd and gzip response compression
+        // Use fastest compression level (1) based on experiments in crates/cloud/build-artifacts/src/encode.rs
+        // which showed level 1 provides good compression with minimal performance impact
+        // NOTE: Fastest can't be used here, see: https://github.com/tower-rs/tower-http/issues/590
+        .layer(CompressionLayer::new().quality(tower_http::CompressionLevel::Precise(1)))
 }
 
 fn auth_handler(

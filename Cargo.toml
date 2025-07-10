@@ -50,6 +50,8 @@ tower-http = { version = "0.4", features = [
   "limit",
   "trace",
   "validate-request",
+  "compression-gzip",
+  "compression-zstd",
 ] }
 tracing = "0.1"
 tracing-opentelemetry = "0.23"
