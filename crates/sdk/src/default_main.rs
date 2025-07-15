@@ -82,6 +82,14 @@ struct ServeCommand {
     service_name: Option<String>,
     #[arg(long, value_name = "MAX_REQUEST_SIZE", env = "HASURA_MAX_REQUEST_SIZE")]
     max_request_size: Option<usize>,
+    #[arg(long, value_name = "CONNECTOR_NAME", env = "HASURA_CONNECTOR_NAME")]
+    connector_name: Option<String>,
+    #[arg(
+        long,
+        value_name = "CONNECTOR_VERSION",
+        env = "HASURA_CONNECTOR_VERSION"
+    )]
+    connector_version: Option<String>,
 }
 
 #[derive(Clone, Parser)]
@@ -221,6 +229,8 @@ where
     init_tracing(
         serve_command.service_name.as_deref(),
         serve_command.otlp_endpoint.as_deref(),
+        serve_command.connector_name.as_deref(),
+        serve_command.connector_version.as_deref(),
     )
     .expect("Unable to initialize tracing");
 
