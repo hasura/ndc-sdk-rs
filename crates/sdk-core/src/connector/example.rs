@@ -34,12 +34,12 @@ impl Connector for Example {
     type Configuration = ();
     type State = ();
 
-    fn connector_name() -> String {
-        "example".into()
+    fn connector_name() -> &'static str {
+        "example"
     }
 
-    fn connector_version() -> String {
-        "1.0.0".into()
+    fn connector_version() -> &'static str {
+        env!("CARGO_PKG_VERSION")
     }
 
     fn fetch_metrics(_configuration: &Self::Configuration, _state: &Self::State) -> Result<()> {

@@ -17,8 +17,8 @@ static CONNECTOR_VERSION: &str = "service.connector.version";
 pub fn init_tracing(
     service_name: Option<&str>,
     otlp_endpoint: Option<&str>,
-    connector_name: String,
-    connector_version: String,
+    connector_name: &str,
+    connector_version: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let trace_endpoint = otlp_endpoint
         .map(ToOwned::to_owned)

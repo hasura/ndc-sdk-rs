@@ -44,9 +44,9 @@ pub trait Connector: Send + 'static {
     /// The type of unserializable state
     type State: Send + Sync;
 
-    fn connector_name() -> String;
+    fn connector_name() -> &'static str;
 
-    fn connector_version() -> String;
+    fn connector_version() -> &'static str;
 
     /// Update any metrics from the state
     ///
