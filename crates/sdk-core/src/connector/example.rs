@@ -34,6 +34,14 @@ impl Connector for Example {
     type Configuration = ();
     type State = ();
 
+    fn connector_name() -> String {
+        "example".into()
+    }
+
+    fn connector_version() -> String {
+        "1.0.0".into()
+    }
+
     fn fetch_metrics(_configuration: &Self::Configuration, _state: &Self::State) -> Result<()> {
         Ok(())
     }
