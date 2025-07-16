@@ -221,6 +221,8 @@ where
     init_tracing(
         serve_command.service_name.as_deref(),
         serve_command.otlp_endpoint.as_deref(),
+        <Setup::Connector as Connector>::connector_name(),
+        <Setup::Connector as Connector>::connector_version(),
     )
     .expect("Unable to initialize tracing");
 

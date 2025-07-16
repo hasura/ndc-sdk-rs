@@ -11,9 +11,14 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+static CONNECTOR_NAME: &str = "service.connector.name";
+static CONNECTOR_VERSION: &str = "service.connector.version";
+
 pub fn init_tracing(
     service_name: Option<&str>,
     otlp_endpoint: Option<&str>,
+    connector_name: &str,
+    connector_version: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let trace_endpoint = otlp_endpoint
         .map(ToOwned::to_owned)
@@ -67,21 +72,25 @@ pub fn init_tracing(
                     }
                 }?;
 
+            let resources = vec![
+                opentelemetry::KeyValue::new(
+                    opentelemetry_semantic_conventions::resource::SERVICE_NAME,
+                    service_name.to_string(),
+                ),
+                opentelemetry::KeyValue::new(
+                    opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
+                    env!("CARGO_PKG_VERSION"),
+                ),
+                opentelemetry::KeyValue::new(CONNECTOR_NAME, connector_name.to_string()),
+                opentelemetry::KeyValue::new(CONNECTOR_VERSION, connector_version.to_string()),
+            ];
+
             let tracer = opentelemetry_otlp::new_pipeline()
                 .tracing()
                 .with_exporter(exporter)
                 .with_trace_config(
                     opentelemetry_sdk::trace::config()
-                        .with_resource(opentelemetry_sdk::Resource::new(vec![
-                            opentelemetry::KeyValue::new(
-                                opentelemetry_semantic_conventions::resource::SERVICE_NAME,
-                                service_name.to_string(),
-                            ),
-                            opentelemetry::KeyValue::new(
-                                opentelemetry_semantic_conventions::resource::SERVICE_VERSION,
-                                env!("CARGO_PKG_VERSION"),
-                            ),
-                        ]))
+                        .with_resource(opentelemetry_sdk::Resource::new(resources))
                         .with_sampler(opentelemetry_sdk::trace::Sampler::ParentBased(Box::new(
                             opentelemetry_sdk::trace::Sampler::AlwaysOn,
                         ))),
