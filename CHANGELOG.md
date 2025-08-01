@@ -6,6 +6,10 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+## 0.8.1
+
+Add `DefaultBodyLimit` set to `max_request_size` to match `RequestBodyLimitLayer`.
+
 ## [0.8.0]
 
 - `connector_name` and `connector_version` functions added to `Connector` trait which are included in traces.
