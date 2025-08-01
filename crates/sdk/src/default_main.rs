@@ -3,7 +3,7 @@ use std::{io, net};
 
 use axum::{
     body::Body,
-    extract::State,
+    extract::{DefaultBodyLimit, State},
     http::{HeaderValue, Request, StatusCode},
     response::IntoResponse as _,
     routing::{get, post},
@@ -294,6 +294,9 @@ where
         // vulnerabilities. We use RequestBodyLimit instead of DefaultBodyLimit to include chunked
         // requests, too.
         .layer(RequestBodyLimitLayer::new(
+            max_request_size.unwrap_or(100 * 1024 * 1024),
+        ))
+        .layer(DefaultBodyLimit::max(
             max_request_size.unwrap_or(100 * 1024 * 1024),
         ))
         .layer(ValidateRequestHeaderLayer::custom(auth_handler(
