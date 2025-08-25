@@ -25,6 +25,10 @@ Add `DefaultBodyLimit` set to `max_request_size` to match `RequestBodyLimitLayer
 - Updated to support [v0.2.0 of the NDC Spec](https://hasura.github.io/ndc-spec/specification/changelog.html#020). This is a very large update which adds new features and some breaking changes.
 - If the [`X-Hasura-NDC-Version`](https://hasura.github.io/ndc-spec/specification/versioning.html) header is sent, the SDK will validate that the connector supports the incoming request's version and reject it if it does not. If no header is sent, no action is taken.
 
+## [0.5.1] - 2025-08-25
+
+- Cargo audit updates for security vulnerabilities
+
 ## [0.5.0] - 2024-10-29
 
 - A default request size limit of 100MB was added. This can be overridden with the `HASURA_MAX_REQUEST_SIZE` environment variable ([#29](https://github.com/hasura/ndc-sdk-rs/pull/29)).
@@ -33,7 +37,7 @@ Add `DefaultBodyLimit` set to `max_request_size` to match `RequestBodyLimitLayer
 
 ## [0.4.0] - 2024-08-30
 
-- update ndc-spec to v0.1.6 by @soupi in https://github.com/hasura/ndc-sdk-rs/pull/28
+- update ndc-spec to v0.1.6 by @soupi in <https://github.com/hasura/ndc-sdk-rs/pull/28>
 
 ## [0.3.0] - 2024-08-12
 
@@ -42,7 +46,7 @@ Add `DefaultBodyLimit` set to `max_request_size` to match `RequestBodyLimitLayer
 
 ## [0.2.2] - 2024-07-30
 
-- listen on all ipv4 and ipv6 interfaces by default (https://github.com/hasura/ndc-sdk-rs/pull/22)
+- listen on all ipv4 and ipv6 interfaces by default (<https://github.com/hasura/ndc-sdk-rs/pull/22>)
 
 ## [0.2.1] - 2024-07-11
 
