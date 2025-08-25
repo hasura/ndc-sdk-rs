@@ -32,7 +32,7 @@ opentelemetry-otlp = { version = "0.15", features = [
 opentelemetry-semantic-conventions = "0.14"
 opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
 opentelemetry-zipkin = "0.20"
-prometheus = "0.13"
+prometheus = "0.14"
 reqwest = "0.11"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
@@ -58,7 +58,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "fmt",
   "json",
 ] }
-url = "2"
+url = "2.5"
 
 
 [workspace.lints.clippy]
