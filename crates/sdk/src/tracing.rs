@@ -3,9 +3,12 @@ use std::env;
 use std::error::Error;
 use std::time::Duration;
 
-use axum::body::{Body, BoxBody};
+use axum::body::Body;
 use http::{Request, Response};
-use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
+use opentelemetry::trace::TracerProvider;
+use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::trace::SdkTracerProvider;
+
 use tracing::{Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::layer::SubscriberExt;
@@ -19,7 +22,7 @@ pub fn init_tracing(
     otlp_endpoint: Option<&str>,
     connector_name: &str,
     connector_version: &str,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
+) -> Result<Option<SdkTracerProvider>, Box<dyn Error + Send + Sync>> {
     let trace_endpoint = otlp_endpoint
         .map(ToOwned::to_owned)
         .or_else(|| env::var(opentelemetry_otlp::OTEL_EXPORTER_OTLP_TRACES_ENDPOINT).ok());
@@ -38,7 +41,10 @@ pub fn init_tracing(
 
     match trace_endpoint {
         // disable traces exporter if the endpoint is empty
-        None => subscriber.init(),
+        None => {
+            subscriber.init();
+            Ok(None)
+        }
         Some(endpoint) => {
             opentelemetry::global::set_text_map_propagator(
                 opentelemetry::propagation::composite::TextMapCompositePropagator::new(vec![
@@ -49,28 +55,32 @@ pub fn init_tracing(
 
             let service_name = service_name.unwrap_or(env!("CARGO_PKG_NAME"));
 
-            let exporter: SpanExporterBuilder =
-                match env::var(opentelemetry_otlp::OTEL_EXPORTER_OTLP_PROTOCOL) {
-                    Ok(protocol) => match protocol.as_str() {
-                        "grpc" => Ok(opentelemetry_otlp::new_exporter()
-                            .tonic()
-                            .with_endpoint(endpoint)
-                            .into()),
-                        "http/protobuf" => Ok(opentelemetry_otlp::new_exporter()
-                            .http()
-                            .with_endpoint(endpoint)
-                            .into()),
-                        invalid => Err(format!("invalid protocol: {invalid:?}")),
-                    },
-                    // the default exporter protocol is grpc
-                    Err(env::VarError::NotPresent) => Ok(opentelemetry_otlp::new_exporter()
-                        .tonic()
+            let exporter = match env::var(opentelemetry_otlp::OTEL_EXPORTER_OTLP_PROTOCOL) {
+                Ok(protocol) => match protocol.as_str() {
+                    "grpc" => opentelemetry_otlp::SpanExporter::builder()
+                        .with_tonic()
                         .with_endpoint(endpoint)
-                        .into()),
-                    Err(env::VarError::NotUnicode(os_str)) => {
-                        Err(format!("invalid protocol: {os_str:?}"))
-                    }
-                }?;
+                        .build(),
+                    "http/protobuf" => opentelemetry_otlp::SpanExporter::builder()
+                        .with_http()
+                        .with_endpoint(endpoint)
+                        .build(),
+                    invalid => Err(opentelemetry_otlp::ExporterBuildError::InternalFailure(
+                        format!("invalid protocol: {invalid:?}"),
+                    )),
+                },
+                // the default exporter protocol is grpc
+                Err(env::VarError::NotPresent) => opentelemetry_otlp::SpanExporter::builder()
+                    .with_tonic()
+                    .with_endpoint(endpoint)
+                    .build(),
+                Err(env::VarError::NotUnicode(os_str)) => {
+                    let formatted_str = os_str.to_str().unwrap_or("");
+                    Err(opentelemetry_otlp::ExporterBuildError::InternalFailure(
+                        format!("invalid protocol: {formatted_str}"),
+                    ))
+                }
+            }?;
 
             let resources = vec![
                 opentelemetry::KeyValue::new(
@@ -85,17 +95,20 @@ pub fn init_tracing(
                 opentelemetry::KeyValue::new(CONNECTOR_VERSION, connector_version.to_string()),
             ];
 
-            let tracer = opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(exporter)
-                .with_trace_config(
-                    opentelemetry_sdk::trace::config()
-                        .with_resource(opentelemetry_sdk::Resource::new(resources))
-                        .with_sampler(opentelemetry_sdk::trace::Sampler::ParentBased(Box::new(
-                            opentelemetry_sdk::trace::Sampler::AlwaysOn,
-                        ))),
+            let tracer_provider_builder = SdkTracerProvider::builder()
+                .with_batch_exporter(exporter)
+                .with_resource(
+                    opentelemetry_sdk::Resource::builder_empty()
+                        .with_attributes(resources)
+                        .build(),
                 )
-                .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+                .with_sampler(opentelemetry_sdk::trace::Sampler::ParentBased(Box::new(
+                    opentelemetry_sdk::trace::Sampler::AlwaysOn,
+                )));
+
+            let tracer_provider = tracer_provider_builder.build();
+
+            let tracer = tracer_provider.tracer(connector_name.to_string());
 
             subscriber
                 .with(
@@ -104,10 +117,10 @@ pub fn init_tracing(
                         .with_tracer(tracer),
                 )
                 .init();
-        }
-    };
 
-    Ok(())
+            Ok(Some(tracer_provider))
+        }
+    }
 }
 // Custom function for creating request-level spans
 // tracing crate requires all fields to be defined at creation time, so any fields that will be set
@@ -142,7 +155,7 @@ pub fn make_span(request: &Request<Body>) -> Span {
 }
 
 // Custom function for adding information to request-level span that is only available at response time.
-pub fn on_response(response: &Response<BoxBody>, latency: Duration, span: &Span) {
+pub fn on_response(response: &Response<Body>, latency: Duration, span: &Span) {
     span.record("status", tracing::field::display(response.status()));
     span.record("latency", tracing::field::display(latency.as_nanos()));
 }

@@ -49,7 +49,7 @@ fn print_json_schema_and_capabilities<W: Write>(
     write_json_response(&mut writer, schema)?;
     write!(writer, r#","capabilities":"#)?;
     write_json_response(&mut writer, capabilities)?;
-    writeln!(writer, r#"}}"#)?;
+    writeln!(writer, r"}}")?;
 
     Ok(())
 }
