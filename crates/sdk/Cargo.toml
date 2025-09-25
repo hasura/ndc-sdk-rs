@@ -19,7 +19,7 @@ path = "bin/main.rs"
 default = ["native-tls", "ndc-test"]
 
 native-tls = ["reqwest/native-tls"]
-rustls = ["reqwest/rustls"]
+rustls = ["reqwest/rustls-tls"]
 
 ndc-test = ["dep:ndc-test", "ndc-sdk-core/ndc-test"]
 
