@@ -218,7 +218,7 @@ where
     <Setup::Connector as Connector>::Configuration: Clone,
     <Setup::Connector as Connector>::State: Clone,
 {
-    init_tracing(
+    let trace_provider = init_tracing(
         serve_command.service_name.as_deref(),
         serve_command.otlp_endpoint.as_deref(),
         <Setup::Connector as Connector>::connector_name(),
@@ -236,8 +236,12 @@ where
 
     let address = net::SocketAddr::new(serve_command.host, serve_command.port);
     println!("Starting server on {address}");
-    axum::Server::bind(&address)
-        .serve(router.into_make_service())
+
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
+        .expect("Unable to listen address");
+
+    axum::serve(listener, router.into_make_service())
         .with_graceful_shutdown(async {
             // wait for a SIGINT, i.e. a Ctrl+C from the keyboard
             let sigint = async {
@@ -264,7 +268,12 @@ where
                 _ = sigint => (),
             }
 
-            opentelemetry::global::shutdown_tracer_provider();
+            if let Some(provider) = trace_provider {
+                match provider.shutdown() {
+                    Ok(()) => println!("Shut down trace provider successfully"),
+                    Err(err) => println!("Failed to shut down trace provider: {err:?}"),
+                }
+            }
         })
         .await
         .map_err(ErrorResponse::from_error)?;
@@ -367,6 +376,7 @@ fn auth_handler(
     }
 }
 
+#[allow(clippy::result_large_err)]
 fn check_version_header(
     request: &mut Request<Body>,
 ) -> std::result::Result<(), axum::response::Response> {

@@ -76,7 +76,7 @@ mod tests {
             }),
         );
 
-        let client = TestClient::new(app)?;
+        let client = TestClient::new(app).await?;
         let response = client.get("/").send().await?;
 
         assert_eq!(response.status(), StatusCode::OK);
@@ -101,7 +101,7 @@ mod tests {
             }),
         );
 
-        let client = TestClient::new(app)?;
+        let client = TestClient::new(app).await?;
         let response = client.get("/").send().await?;
 
         assert_eq!(response.status(), StatusCode::OK);
@@ -136,15 +136,16 @@ pub mod test_client {
     }
 
     impl TestClient {
-        pub fn new(router: axum::Router) -> anyhow::Result<Self> {
-            let listener = std::net::TcpListener::bind(std::net::SocketAddr::new(LOCALHOST, 0))?;
+        pub async fn new(router: axum::Router) -> anyhow::Result<Self> {
+            let listener = tokio::net::TcpListener::bind(std::net::SocketAddr::new(LOCALHOST, 0))
+                .await
+                .unwrap();
+
             let address = listener.local_addr()?;
 
             // we ignore the handle and let the test runner clean up the server
             tokio::spawn(async move {
-                axum::Server::from_tcp(listener)
-                    .expect("server error")
-                    .serve(router.into_make_service())
+                axum::serve(listener, router.into_make_service())
                     .await
                     .expect("server error");
             });

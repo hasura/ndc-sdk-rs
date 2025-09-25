@@ -6,9 +6,11 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
-## 0.8.1
+- Update to support v0.2.10 of the NDC Spec. Upgrade axum v0.7, opentelemetry v0.30, and other dependencies.
 
-Add `DefaultBodyLimit` set to `max_request_size` to match `RequestBodyLimitLayer`.
+## [0.8.1]
+
+- Add `DefaultBodyLimit` set to `max_request_size` to match `RequestBodyLimitLayer`.
 
 ## [0.8.0]
 

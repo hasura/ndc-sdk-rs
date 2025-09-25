@@ -62,9 +62,6 @@
         ] ++ lib.optionals hostPlatform.isDarwin [
           # macOS-specific dependencies
           libiconv
-          darwin.apple_sdk.frameworks.CoreFoundation
-          darwin.apple_sdk.frameworks.Security
-          darwin.apple_sdk.frameworks.SystemConfiguration
         ];
       };
     in
