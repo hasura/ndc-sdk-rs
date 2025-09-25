@@ -218,7 +218,7 @@ where
     <Setup::Connector as Connector>::Configuration: Clone,
     <Setup::Connector as Connector>::State: Clone,
 {
-    init_tracing(
+    let trace_provider = init_tracing(
         serve_command.service_name.as_deref(),
         serve_command.otlp_endpoint.as_deref(),
         <Setup::Connector as Connector>::connector_name(),
@@ -268,7 +268,12 @@ where
                 _ = sigint => (),
             }
 
-            opentelemetry::global::shutdown_tracer_provider();
+            if let Some(provider) = trace_provider {
+                match provider.shutdown() {
+                    Ok(_) => println!("Shut down trace provider successfully"),
+                    Err(err) => println!("Failed to shut down trace provider: {err:?}"),
+                };
+            };
         })
         .await
         .map_err(ErrorResponse::from_error)?;
