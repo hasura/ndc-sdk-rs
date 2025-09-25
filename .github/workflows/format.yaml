@@ -27,8 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: install Nix
-        uses: cachix/install-nix-action@v31
+      - name: Install Nix ❄
+        uses: DeterminateSystems/nix-installer-action@v9
 
       - name: check formatting
         run: |
@@ -40,8 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: install Nix
-        uses: cachix/install-nix-action@v31
+      - name: Install Nix ❄
+        uses: DeterminateSystems/nix-installer-action@v9
 
       - name: check formatting
         run: |
