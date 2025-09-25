@@ -75,9 +75,9 @@ pub fn init_tracing(
                     .with_endpoint(endpoint)
                     .build(),
                 Err(env::VarError::NotUnicode(os_str)) => {
-                    let display_str = os_str.display();
+                    let formatted_str = os_str.to_str().unwrap_or("");
                     Err(opentelemetry_otlp::ExporterBuildError::InternalFailure(
-                        format!("invalid protocol: {display_str}"),
+                        format!("invalid protocol: {formatted_str}"),
                     ))
                 }
             }?;
