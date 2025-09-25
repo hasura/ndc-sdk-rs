@@ -14,24 +14,24 @@ ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.10" }
 
 anyhow = "1"
 async-trait = "0.1"
-axum = { version = "0.6", features = ["http2"] }
-axum-extra = "0.8"
+axum = { version = "0.7", features = ["http2"] }
+axum-extra = "0.9"
 bytes = "1"
 clap = { version = "4", features = ["derive", "env"] }
-http = "0.2"
+http = "1"
 mime = "0.3"
-opentelemetry = "0.22"
-opentelemetry-http = "0.11"
-opentelemetry-otlp = { version = "0.15", features = [
+opentelemetry = "0.24"
+opentelemetry-http = "0.13"
+opentelemetry-otlp = { version = "0.17", features = [
   "reqwest-client",
   "gzip-tonic",
   "tls",
   "tls-roots",
   "http-proto",
 ] }
-opentelemetry-semantic-conventions = "0.14"
-opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
-opentelemetry-zipkin = "0.20"
+opentelemetry-semantic-conventions = "0.16"
+opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
+opentelemetry-zipkin = "0.22"
 prometheus = "0.14"
 # Adding the gzip/zstd features have the library send appropriate
 # Accept-Encoding and automatically decompress. As of this version it doesn't
@@ -48,7 +48,7 @@ tokio = { version = "1", features = [
   "signal",
 ] }
 tokio-test = "0.4"
-tower-http = { version = "0.4", features = [
+tower-http = { version = "0.6", features = [
   "cors",
   "limit",
   "trace",
@@ -57,7 +57,7 @@ tower-http = { version = "0.4", features = [
   "compression-zstd",
 ] }
 tracing = "0.1"
-tracing-opentelemetry = "0.23"
+tracing-opentelemetry = "0.25"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
   "env-filter",

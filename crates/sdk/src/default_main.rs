@@ -236,8 +236,12 @@ where
 
     let address = net::SocketAddr::new(serve_command.host, serve_command.port);
     println!("Starting server on {address}");
-    axum::Server::bind(&address)
-        .serve(router.into_make_service())
+
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
+        .expect("Unable to listen address");
+
+    axum::serve(listener, router.into_make_service())
         .with_graceful_shutdown(async {
             // wait for a SIGINT, i.e. a Ctrl+C from the keyboard
             let sigint = async {

@@ -3,9 +3,11 @@ use std::env;
 use std::error::Error;
 use std::time::Duration;
 
-use axum::body::{Body, BoxBody};
+use axum::body::Body;
 use http::{Request, Response};
+use opentelemetry::trace::TracerProvider as _;
 use opentelemetry_otlp::{SpanExporterBuilder, WithExportConfig};
+use opentelemetry_sdk::trace::TracerProvider;
 use tracing::{Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::layer::SubscriberExt;
@@ -49,7 +51,7 @@ pub fn init_tracing(
 
             let service_name = service_name.unwrap_or(env!("CARGO_PKG_NAME"));
 
-            let exporter: SpanExporterBuilder =
+            let exporter_builder: SpanExporterBuilder =
                 match env::var(opentelemetry_otlp::OTEL_EXPORTER_OTLP_PROTOCOL) {
                     Ok(protocol) => match protocol.as_str() {
                         "grpc" => Ok(opentelemetry_otlp::new_exporter()
@@ -85,17 +87,21 @@ pub fn init_tracing(
                 opentelemetry::KeyValue::new(CONNECTOR_VERSION, connector_version.to_string()),
             ];
 
-            let tracer = opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(exporter)
-                .with_trace_config(
-                    opentelemetry_sdk::trace::config()
+            let exporter = exporter_builder.build_span_exporter()?;
+
+            let tracer_provider_builder = TracerProvider::builder()
+                .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
+                .with_config(
+                    opentelemetry_sdk::trace::Config::default()
                         .with_resource(opentelemetry_sdk::Resource::new(resources))
                         .with_sampler(opentelemetry_sdk::trace::Sampler::ParentBased(Box::new(
                             opentelemetry_sdk::trace::Sampler::AlwaysOn,
                         ))),
-                )
-                .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+                );
+
+            let tracer_provider = tracer_provider_builder.build();
+
+            let tracer = tracer_provider.tracer(connector_name.to_string());
 
             subscriber
                 .with(
@@ -142,7 +148,7 @@ pub fn make_span(request: &Request<Body>) -> Span {
 }
 
 // Custom function for adding information to request-level span that is only available at response time.
-pub fn on_response(response: &Response<BoxBody>, latency: Duration, span: &Span) {
+pub fn on_response(response: &Response<Body>, latency: Duration, span: &Span) {
     span.record("status", tracing::field::display(response.status()));
     span.record("latency", tracing::field::display(latency.as_nanos()));
 }
