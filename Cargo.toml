@@ -14,8 +14,8 @@ ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.10" }
 
 anyhow = "1"
 async-trait = "0.1"
-axum = { version = "0.7", features = ["http2"] }
-axum-extra = "0.9"
+axum = { version = "0.8", features = ["http2"] }
+axum-extra = "0.10"
 bytes = "1"
 clap = { version = "4", features = ["derive", "env"] }
 http = "1"
