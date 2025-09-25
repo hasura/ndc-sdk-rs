@@ -270,10 +270,10 @@ where
 
             if let Some(provider) = trace_provider {
                 match provider.shutdown() {
-                    Ok(_) => println!("Shut down trace provider successfully"),
+                    Ok(()) => println!("Shut down trace provider successfully"),
                     Err(err) => println!("Failed to shut down trace provider: {err:?}"),
-                };
-            };
+                }
+            }
         })
         .await
         .map_err(ErrorResponse::from_error)?;
@@ -376,6 +376,7 @@ fn auth_handler(
     }
 }
 
+#[allow(clippy::result_large_err)]
 fn check_version_header(
     request: &mut Request<Body>,
 ) -> std::result::Result<(), axum::response::Response> {
