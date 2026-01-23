@@ -6,6 +6,10 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+## [0.5.2] - 2026-01-22
+
+- Cargo audit updates for security vulnerabilities
+
 ## [0.5.1] - 2025-08-25
 
 - Cargo audit updates for security vulnerabilities
