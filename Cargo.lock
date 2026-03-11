@@ -1196,8 +1196,8 @@ dependencies = [
 
 [[package]]
 name = "ndc-models"
-version = "0.2.10"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.2.10#b8e165ce31d25abd84a6fcb41fc61190227654b8"
+version = "0.2.12"
+source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.2.12#86af33d8a09228a74499d02a1f838bf9f7a9759f"
 dependencies = [
  "indexmap 2.7.1",
  "ref-cast",
@@ -1216,6 +1216,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "clap",
+ "futures-util",
  "http",
  "ndc-models",
  "ndc-sdk-core",
@@ -1247,6 +1248,7 @@ dependencies = [
  "async-trait",
  "axum",
  "bytes",
+ "futures-util",
  "http",
  "mime",
  "ndc-models",
@@ -1257,14 +1259,15 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-stream",
  "tokio-test",
  "tracing",
 ]
 
 [[package]]
 name = "ndc-test"
-version = "0.2.10"
-source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.2.10#b8e165ce31d25abd84a6fcb41fc61190227654b8"
+version = "0.2.12"
+source = "git+http://github.com/hasura/ndc-spec.git?tag=v0.2.12#86af33d8a09228a74499d02a1f838bf9f7a9759f"
 dependencies = [
  "async-trait",
  "clap",

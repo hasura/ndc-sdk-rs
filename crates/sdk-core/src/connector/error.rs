@@ -393,3 +393,45 @@ impl From<MutationError> for ErrorResponse {
         }
     }
 }
+
+/// Error indicating that a feature is not supported by this connector.
+///
+/// This is used as the default return value for optional connector methods
+/// like relational queries.
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("Not supported")]
+pub struct NotSupported {
+    message: String,
+}
+
+impl NotSupported {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            message: "This operation is not supported by this connector".to_string(),
+        }
+    }
+
+    #[must_use]
+    pub fn with_message(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
+impl Default for NotSupported {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<NotSupported> for ErrorResponse {
+    fn from(value: NotSupported) -> Self {
+        ErrorResponse::new(
+            StatusCode::NOT_IMPLEMENTED,
+            value.message,
+            serde_json::Value::Null,
+        )
+    }
+}

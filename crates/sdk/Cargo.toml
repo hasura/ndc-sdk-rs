@@ -45,6 +45,7 @@ semver = { workspace = true }
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "signal"] }
+futures-util = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "limit", "trace", "validate-request"] }
 tracing = { workspace = true }
 tracing-opentelemetry = { workspace = true }

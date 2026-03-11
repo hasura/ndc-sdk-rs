@@ -9,8 +9,8 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.10" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.10" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
 
 anyhow = "1"
 async-trait = "0.1"
@@ -48,7 +48,9 @@ tokio = { version = "1", features = [
   "rt-multi-thread",
   "signal",
 ] }
+tokio-stream = "0.1"
 tokio-test = "0.4"
+futures-util = "0.3"
 tower-http = { version = "0.6", features = [
   "cors",
   "limit",

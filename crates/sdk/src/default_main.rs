@@ -18,7 +18,8 @@ use tower_http::{
 };
 
 use ndc_models::{
-    ExplainResponse, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse,
+    ExplainResponse, MutationRequest, MutationResponse, QueryRequest, QueryResponse,
+    RelationalQuery, RelationalQueryResponse, SchemaResponse,
 };
 
 use crate::check_health;
@@ -299,6 +300,11 @@ where
         .route("/query/explain", post(post_query_explain::<C>))
         .route("/mutation", post(post_mutation::<C>))
         .route("/mutation/explain", post(post_mutation_explain::<C>))
+        .route("/query/relational", post(post_query_relational::<C>))
+        .route(
+            "/query/relational/stream",
+            post(post_query_relational_stream::<C>),
+        )
         // We want to limit the size of requests to 100MB to prevent various DDoS / SQL overflow
         // vulnerabilities. We use RequestBodyLimit instead of DefaultBodyLimit to include chunked
         // requests, too.
@@ -469,6 +475,480 @@ async fn post_query<C: Connector>(
     WithRejection(Json(request), _): WithRejection<Json<QueryRequest>, JsonRejection>,
 ) -> Result<JsonResponse<QueryResponse>> {
     C::query(state.configuration(), state.state().await?, request).await
+}
+
+async fn post_query_relational<C: Connector>(
+    State(state): State<ServerState<C>>,
+    WithRejection(Json(request), _): WithRejection<Json<RelationalQuery>, JsonRejection>,
+) -> Result<JsonResponse<RelationalQueryResponse>> {
+    C::query_relational(state.configuration(), state.state().await?, request).await
+}
+
+async fn post_query_relational_stream<C: Connector>(
+    State(state): State<ServerState<C>>,
+    WithRejection(Json(request), _): WithRejection<Json<RelationalQuery>, JsonRejection>,
+) -> std::result::Result<impl axum::response::IntoResponse, ErrorResponse> {
+    use futures_util::StreamExt;
+
+    let span = tracing::Span::current();
+    let stream = C::query_relational_stream(state.configuration(), state.state().await?, request)
+        .await?
+        .map(move |row_result| match row_result {
+            Ok(row) => match serde_json::to_vec(&row) {
+                Ok(mut json_line) => {
+                    json_line.push(b'\n');
+                    Ok(json_line)
+                }
+                Err(err) => {
+                    let err = ErrorResponse::from_error(err);
+                    tracing::error!(
+                        parent: &span,
+                        meta.signal_type = "log",
+                        event.domain = "ndc",
+                        event.name = "Relational stream serialization failure",
+                        name = "Relational stream serialization failure",
+                        body = %err,
+                        error = true,
+                    );
+                    Err(err)
+                }
+            },
+            Err(err) => {
+                tracing::error!(
+                    parent: &span,
+                    meta.signal_type = "log",
+                    event.domain = "ndc",
+                    event.name = "Relational stream failure",
+                    name = "Relational stream failure",
+                    body = %err,
+                    error = true,
+                );
+                Err(err)
+            }
+        });
+
+    Ok((
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "application/x-ndjson; charset=utf-8",
+        )],
+        axum::body::Body::from_stream(stream),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::error::Error;
+    use std::net::SocketAddr;
+
+    use async_trait::async_trait;
+    use futures_util::stream::{self, BoxStream, StreamExt as _};
+    use http::StatusCode;
+    use prometheus::Registry;
+    use serde_json::json;
+
+    use crate::connector::NotSupported;
+    use crate::state::ServerState;
+
+    use super::*;
+
+    #[derive(Clone)]
+    struct TestSetup<C: Connector> {
+        state: C::State,
+    }
+
+    #[async_trait]
+    impl<C> ConnectorSetup for TestSetup<C>
+    where
+        C: Connector,
+        C::Configuration: Default,
+        C::State: Clone,
+    {
+        type Connector = C;
+
+        async fn parse_configuration(
+            &self,
+            _configuration_dir: &std::path::Path,
+        ) -> Result<<Self::Connector as Connector>::Configuration> {
+            Ok(Default::default())
+        }
+
+        async fn try_init_state(
+            &self,
+            _configuration: &<Self::Connector as Connector>::Configuration,
+            _metrics: &mut Registry,
+        ) -> Result<<Self::Connector as Connector>::State> {
+            Ok(self.state.clone())
+        }
+    }
+
+    #[derive(Clone, Default)]
+    struct TestState {
+        relational_rows: Vec<Vec<serde_json::Value>>,
+        stream_rows: Vec<std::result::Result<Vec<serde_json::Value>, String>>,
+    }
+
+    struct DefaultRelationalConnector;
+
+    #[async_trait]
+    impl Connector for DefaultRelationalConnector {
+        type Configuration = ();
+        type State = ();
+
+        fn connector_name() -> &'static str {
+            "default-relational"
+        }
+
+        fn connector_version() -> &'static str {
+            "test"
+        }
+
+        fn fetch_metrics(_configuration: &Self::Configuration, _state: &Self::State) -> Result<()> {
+            Ok(())
+        }
+
+        async fn get_capabilities() -> ndc_models::Capabilities {
+            empty_capabilities()
+        }
+
+        async fn get_schema(
+            _configuration: &Self::Configuration,
+        ) -> Result<JsonResponse<SchemaResponse>> {
+            Ok(empty_schema().into())
+        }
+
+        async fn query_explain(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: QueryRequest,
+        ) -> Result<JsonResponse<ExplainResponse>> {
+            Err(NotSupported::with_message("query explain not used in test").into())
+        }
+
+        async fn mutation_explain(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: MutationRequest,
+        ) -> Result<JsonResponse<ExplainResponse>> {
+            Err(NotSupported::with_message("mutation explain not used in test").into())
+        }
+
+        async fn mutation(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: MutationRequest,
+        ) -> Result<JsonResponse<MutationResponse>> {
+            Err(NotSupported::with_message("mutation not used in test").into())
+        }
+
+        async fn query(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: QueryRequest,
+        ) -> Result<JsonResponse<QueryResponse>> {
+            Err(NotSupported::with_message("query not used in test").into())
+        }
+    }
+
+    struct RelationalConnector;
+
+    #[async_trait]
+    impl Connector for RelationalConnector {
+        type Configuration = ();
+        type State = TestState;
+
+        fn connector_name() -> &'static str {
+            "relational"
+        }
+
+        fn connector_version() -> &'static str {
+            "test"
+        }
+
+        fn fetch_metrics(_configuration: &Self::Configuration, _state: &Self::State) -> Result<()> {
+            Ok(())
+        }
+
+        async fn get_capabilities() -> ndc_models::Capabilities {
+            empty_capabilities()
+        }
+
+        async fn get_schema(
+            _configuration: &Self::Configuration,
+        ) -> Result<JsonResponse<SchemaResponse>> {
+            Ok(empty_schema().into())
+        }
+
+        async fn query_explain(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: QueryRequest,
+        ) -> Result<JsonResponse<ExplainResponse>> {
+            Err(NotSupported::with_message("query explain not used in test").into())
+        }
+
+        async fn mutation_explain(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: MutationRequest,
+        ) -> Result<JsonResponse<ExplainResponse>> {
+            Err(NotSupported::with_message("mutation explain not used in test").into())
+        }
+
+        async fn mutation(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: MutationRequest,
+        ) -> Result<JsonResponse<MutationResponse>> {
+            Err(NotSupported::with_message("mutation not used in test").into())
+        }
+
+        async fn query(
+            _configuration: &Self::Configuration,
+            _state: &Self::State,
+            _request: QueryRequest,
+        ) -> Result<JsonResponse<QueryResponse>> {
+            Err(NotSupported::with_message("query not used in test").into())
+        }
+
+        async fn query_relational(
+            _configuration: &Self::Configuration,
+            state: &Self::State,
+            _request: RelationalQuery,
+        ) -> Result<JsonResponse<RelationalQueryResponse>> {
+            Ok(RelationalQueryResponse {
+                rows: state.relational_rows.clone(),
+            }
+            .into())
+        }
+
+        async fn query_relational_stream(
+            _configuration: &Self::Configuration,
+            state: &Self::State,
+            _request: RelationalQuery,
+        ) -> Result<BoxStream<'static, Result<Vec<serde_json::Value>>>> {
+            let stream = stream::iter(state.stream_rows.clone().into_iter().map(|item| {
+                item.map_err(|message| {
+                    ErrorResponse::new(StatusCode::BAD_GATEWAY, message, serde_json::Value::Null)
+                })
+            }))
+            .boxed();
+
+            Ok(stream)
+        }
+    }
+
+    struct TestServer {
+        address: SocketAddr,
+        client: reqwest::Client,
+    }
+
+    impl TestServer {
+        async fn new(
+            router: axum::Router,
+        ) -> std::result::Result<Self, Box<dyn Error + Send + Sync>> {
+            let listener =
+                tokio::net::TcpListener::bind(SocketAddr::from((std::net::Ipv6Addr::LOCALHOST, 0)))
+                    .await?;
+            let address = listener.local_addr()?;
+
+            tokio::spawn(async move {
+                axum::serve(listener, router.into_make_service())
+                    .await
+                    .expect("server error");
+            });
+
+            let client = reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()?;
+
+            Ok(Self { address, client })
+        }
+
+        fn post_json(&self, path: &str, body: &RelationalQuery) -> reqwest::RequestBuilder {
+            self.client
+                .post(format!("http://{}{}", self.address, path))
+                .json(body)
+        }
+    }
+
+    #[tokio::test]
+    async fn relational_query_defaults_to_not_implemented(
+    ) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        let state = ServerState::new(
+            (),
+            TestSetup::<DefaultRelationalConnector> { state: () },
+            Registry::new(),
+        );
+        let server = TestServer::new(create_router::<DefaultRelationalConnector>(
+            state, None, None,
+        ))
+        .await?;
+
+        let response = server
+            .post_json("/query/relational", &sample_relational_query())
+            .send()
+            .await?;
+
+        assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+        assert_eq!(
+            response.json::<ndc_models::ErrorResponse>().await?,
+            ndc_models::ErrorResponse {
+                message: "This operation is not supported by this connector".into(),
+                details: serde_json::Value::Null,
+            }
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn relational_query_route_returns_connector_response(
+    ) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        let state = ServerState::new(
+            (),
+            TestSetup::<RelationalConnector> {
+                state: TestState {
+                    relational_rows: vec![vec![json!(1), json!("two")]],
+                    stream_rows: vec![],
+                },
+            },
+            Registry::new(),
+        );
+        let server =
+            TestServer::new(create_router::<RelationalConnector>(state, None, None)).await?;
+
+        let response = server
+            .post_json("/query/relational", &sample_relational_query())
+            .send()
+            .await?;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.json::<RelationalQueryResponse>().await?,
+            RelationalQueryResponse {
+                rows: vec![vec![json!(1), json!("two")]],
+            }
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn relational_stream_route_returns_ndjson(
+    ) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        let state = ServerState::new(
+            (),
+            TestSetup::<RelationalConnector> {
+                state: TestState {
+                    relational_rows: vec![],
+                    stream_rows: vec![
+                        Ok(vec![json!(1), json!("two")]),
+                        Ok(vec![json!(3), json!("four")]),
+                    ],
+                },
+            },
+            Registry::new(),
+        );
+        let server =
+            TestServer::new(create_router::<RelationalConnector>(state, None, None)).await?;
+
+        let response = server
+            .post_json("/query/relational/stream", &sample_relational_query())
+            .send()
+            .await?;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .unwrap(),
+            "application/x-ndjson; charset=utf-8"
+        );
+        assert_eq!(response.text().await?, "[1,\"two\"]\n[3,\"four\"]\n");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn relational_stream_route_propagates_stream_errors(
+    ) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        let state = ServerState::new(
+            (),
+            TestSetup::<RelationalConnector> {
+                state: TestState {
+                    relational_rows: vec![],
+                    stream_rows: vec![Ok(vec![json!(1)]), Err("stream failed".into())],
+                },
+            },
+            Registry::new(),
+        );
+        let server =
+            TestServer::new(create_router::<RelationalConnector>(state, None, None)).await?;
+
+        let error = server
+            .post_json("/query/relational/stream", &sample_relational_query())
+            .send()
+            .await
+            .expect_err("stream transport should fail once the connector stream errors");
+        assert!(error.is_request());
+
+        Ok(())
+    }
+
+    fn empty_capabilities() -> ndc_models::Capabilities {
+        ndc_models::Capabilities {
+            relationships: None,
+            query: ndc_models::QueryCapabilities {
+                variables: None,
+                aggregates: None,
+                explain: None,
+                nested_fields: ndc_models::NestedFieldCapabilities {
+                    filter_by: None,
+                    order_by: None,
+                    aggregates: None,
+                    nested_collections: None,
+                },
+                exists: ndc_models::ExistsCapabilities {
+                    nested_collections: None,
+                    unrelated: None,
+                    named_scopes: None,
+                    nested_scalar_collections: None,
+                },
+            },
+            mutation: ndc_models::MutationCapabilities {
+                transactional: None,
+                explain: None,
+            },
+            relational_mutation: None,
+            relational_query: None,
+        }
+    }
+
+    fn empty_schema() -> SchemaResponse {
+        SchemaResponse {
+            collections: vec![],
+            functions: vec![],
+            procedures: vec![],
+            object_types: BTreeMap::new(),
+            scalar_types: BTreeMap::new(),
+            capabilities: None,
+            request_arguments: None,
+        }
+    }
+
+    fn sample_relational_query() -> RelationalQuery {
+        RelationalQuery {
+            root_relation: ndc_models::Relation::From {
+                collection: "test_collection".into(),
+                columns: vec![],
+                arguments: BTreeMap::new(),
+            },
+            request_arguments: None,
+        }
+    }
 }
 
 #[cfg(feature = "ndc-test")]
