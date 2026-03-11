@@ -9,8 +9,8 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.11" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.11" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
 
 anyhow = "1"
 async-trait = "0.1"
@@ -37,7 +37,11 @@ prometheus = "0.14"
 # Adding the gzip/zstd features have the library send appropriate
 # Accept-Encoding and automatically decompress. As of this version it doesn't
 # express preference with quality (q) values, but we'd prefer zstd always
-reqwest = { version = "^0.13", default-features = false, features = ["gzip", "zstd", "json"] }
+reqwest = { version = "^0.13", default-features = false, features = [
+  "gzip",
+  "zstd",
+  "json",
+] }
 semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
