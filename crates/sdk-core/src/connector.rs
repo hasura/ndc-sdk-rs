@@ -1,5 +1,6 @@
 use crate::json_response::JsonResponse;
 use async_trait::async_trait;
+use futures_util::stream::BoxStream;
 use ndc_models as models;
 use std::path::Path;
 pub mod error;
@@ -135,6 +136,37 @@ pub trait Connector: Send + 'static {
         state: &Self::State,
         request: models::QueryRequest,
     ) -> Result<JsonResponse<models::QueryResponse>>;
+
+    /// Execute a relational query
+    ///
+    /// This function implements the relational query endpoint from the NDC specification.
+    /// This is an experimental API and connectors are not required to implement it.
+    ///
+    /// The default implementation returns a "not supported" error.
+    async fn query_relational(
+        _configuration: &Self::Configuration,
+        _state: &Self::State,
+        _request: models::RelationalQuery,
+    ) -> Result<JsonResponse<models::RelationalQueryResponse>> {
+        Err(NotSupported::new().into())
+    }
+
+    /// Execute a relational query with streaming response
+    ///
+    /// This function implements the streaming relational query endpoint from the NDC specification.
+    /// It returns a stream of JSON values, where each value represents a row in the result set.
+    /// The HTTP layer will serialize each row as a newline-delimited JSON (NDJSON) line.
+    ///
+    /// This is an experimental API and connectors are not required to implement it.
+    ///
+    /// The default implementation returns a "not supported" error.
+    async fn query_relational_stream(
+        _configuration: &Self::Configuration,
+        _state: &Self::State,
+        _request: models::RelationalQuery,
+    ) -> Result<BoxStream<'static, Result<Vec<serde_json::Value>>>> {
+        Err(NotSupported::new().into())
+    }
 }
 
 /// Connectors are set up by values that implement this trait.

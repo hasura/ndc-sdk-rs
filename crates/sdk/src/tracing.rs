@@ -148,7 +148,7 @@ pub fn make_span(request: &Request<Body>) -> Span {
     let parent_context_span = parent_context.span();
     let parent_context_span_context = parent_context_span.span_context();
     if parent_context_span_context.is_valid() {
-        span.set_parent(parent_context);
+        let _ = span.set_parent(parent_context);
     }
 
     span

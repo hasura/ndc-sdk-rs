@@ -9,20 +9,20 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.10" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.10" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
 
 anyhow = "1"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["http2"] }
-axum-extra = "0.10"
+axum-extra = "0.12"
 bytes = "1"
 clap = { version = "4", features = ["derive", "env"] }
 http = "1"
 mime = "0.3"
-opentelemetry = "0.30"
-opentelemetry-http = "0.30"
-opentelemetry-otlp = { version = "0.30", features = [
+opentelemetry = "0.31"
+opentelemetry-http = "0.31"
+opentelemetry-otlp = { version = "0.31", features = [
   "reqwest-client",
   "grpc-tonic",
   "gzip-tonic",
@@ -30,18 +30,22 @@ opentelemetry-otlp = { version = "0.30", features = [
   "tls-roots",
   "http-proto",
 ] }
-opentelemetry-semantic-conventions = "0.16"
-opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"] }
-opentelemetry-zipkin = "0.30"
+opentelemetry-semantic-conventions = "0.31"
+opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
+opentelemetry-zipkin = "0.31"
 prometheus = "0.14"
 # Adding the gzip/zstd features have the library send appropriate
 # Accept-Encoding and automatically decompress. As of this version it doesn't
 # express preference with quality (q) values, but we'd prefer zstd always
-reqwest = { version = "0.12", features = ["gzip", "zstd", "json"] }
+reqwest = { version = "^0.13", default-features = false, features = [
+  "gzip",
+  "zstd",
+  "json",
+] }
 semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = [
   "fs",
   "macros",
@@ -49,6 +53,7 @@ tokio = { version = "1", features = [
   "signal",
 ] }
 tokio-test = "0.4"
+futures-util = "0.3"
 tower-http = { version = "0.6", features = [
   "cors",
   "limit",
@@ -58,7 +63,7 @@ tower-http = { version = "0.6", features = [
   "compression-zstd",
 ] }
 tracing = "0.1"
-tracing-opentelemetry = "0.31"
+tracing-opentelemetry = "0.32"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
   "env-filter",
