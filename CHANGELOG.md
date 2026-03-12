@@ -6,6 +6,9 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+## [0.9.0]
+
+- Added relational query and streaming query endpoints to the Rust SDK, including NDJSON stream responses and optional connector support defaults.
 - Update to support v0.2.10 of the NDC Spec. Upgrade axum v0.7, opentelemetry v0.30, and other dependencies.
 
 ## [0.8.1]
