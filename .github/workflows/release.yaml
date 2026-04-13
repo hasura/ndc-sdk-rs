@@ -25,7 +25,7 @@ jobs:
           version: ${{ steps.get-version.outputs.tagged_version }}
           path: ./CHANGELOG.md
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           draft: false
           tag_name: v${{ steps.get-version.outputs.tagged_version }}
