@@ -14,7 +14,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v21
 
       - name: Run the Magic Nix Cache 🔌
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+        uses: DeterminateSystems/magic-nix-cache-action@v14
 
       - name: Build the package
         run: nix build
@@ -30,7 +30,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v21
 
       - name: Run the Magic Nix Cache 🔌
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+        uses: DeterminateSystems/magic-nix-cache-action@v14
 
       - name: Check the flake for errors
         run: nix flake check
@@ -46,7 +46,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v21
 
       - name: Run the Magic Nix Cache 🔌
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+        uses: DeterminateSystems/magic-nix-cache-action@v14
 
       - name: Check the formatting
         run: nix fmt -- --check .
@@ -62,7 +62,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v21
 
       - name: Run the Magic Nix Cache 🔌
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+        uses: DeterminateSystems/magic-nix-cache-action@v14
 
       - name: Evaluate the Nix shell
         run: nix develop -c "true"
