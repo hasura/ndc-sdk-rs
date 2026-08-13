@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-package.version = "0.9.0"
+package.version = "0.10.0"
 package.edition = "2021"
 package.license = "Apache-2.0"
 
@@ -9,8 +9,12 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
+# TODO(post-merge): repoint to `git = "https://github.com/hasura/ndc-spec.git", tag = "v0.2.14"`
+# once the ndc-spec `disjunct_streaming_error` PR is merged and tagged. The `rev`
+# below is the development pin on the ndc-spec feature branch that adds the
+# `disjunct_streaming_error` capability (dliub/ndc-spec djh/disjunct-streaming-error-models).
+ndc-models = { git = "https://github.com/dliub/ndc-spec.git", rev = "e99c4ff54cdbeeaf260dfc3befec16c55f4aa4ec" }
+ndc-test = { git = "https://github.com/dliub/ndc-spec.git", rev = "e99c4ff54cdbeeaf260dfc3befec16c55f4aa4ec" }
 
 anyhow = "1"
 async-trait = "0.1"
