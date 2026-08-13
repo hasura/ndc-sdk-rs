@@ -52,6 +52,58 @@ impl ErrorResponse {
             ..self
         }
     }
+
+    #[must_use]
+    pub fn status_code(&self) -> StatusCode {
+        self.status_code
+    }
+
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.inner.message
+    }
+
+    #[must_use]
+    pub fn details(&self) -> &serde_json::Value {
+        &self.inner.details
+    }
+
+    /// Serialize this error as a disjoint, tagged NDJSON error frame for the
+    /// relational streaming response, terminated by a newline.
+    ///
+    /// Relational rows are always JSON arrays, so a tagged JSON object
+    /// (`{"type":"error", ...}`) is structurally disjoint from any row and
+    /// cannot be misinterpreted as data (unlike the ambiguous legacy
+    /// `[status, message]` array). Consumers advertise support for this frame
+    /// via the `disjunct_streaming_error` relational query capability.
+    #[must_use]
+    pub fn to_relational_stream_error_frame(&self) -> Vec<u8> {
+        let frame = RelationalStreamErrorFrame {
+            frame_type: "error",
+            status: self.status_code.as_u16(),
+            message: &self.inner.message,
+            details: &self.inner.details,
+        };
+        let mut bytes = serde_json::to_vec(&frame).unwrap_or_else(|_| {
+            br#"{"type":"error","status":500,"message":"failed to serialize error frame","details":null}"#
+                .to_vec()
+        });
+        bytes.push(b'\n');
+        bytes
+    }
+}
+
+/// A disjoint, tagged error frame emitted at the end of a relational streaming
+/// response. Serializes to a JSON object such as
+/// `{"type":"error","status":500,"message":"...","details":null}`, which is
+/// structurally disjoint from relational rows (which are always JSON arrays).
+#[derive(Serialize)]
+struct RelationalStreamErrorFrame<'a> {
+    #[serde(rename = "type")]
+    frame_type: &'static str,
+    status: u16,
+    message: &'a str,
+    details: &'a serde_json::Value,
 }
 
 impl std::fmt::Display for ErrorResponse {

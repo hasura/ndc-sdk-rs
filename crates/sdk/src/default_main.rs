@@ -491,40 +491,55 @@ async fn post_query_relational_stream<C: Connector>(
     use futures_util::StreamExt;
 
     let span = tracing::Span::current();
+    // Instead of aborting the HTTP body (which truncates the response and gives
+    // the consumer no structured error), we emit a disjoint, tagged JSON-object
+    // error frame as a final NDJSON line and then end the stream cleanly. Rows
+    // are always JSON arrays, so the object frame cannot be confused with data.
+    // Consumers opt in to parsing this frame via the `disjunct_streaming_error`
+    // relational query capability. After emitting an error frame we stop
+    // consuming the underlying stream.
     let stream = C::query_relational_stream(state.configuration(), state.state().await?, request)
         .await?
-        .map(move |row_result| match row_result {
-            Ok(row) => match serde_json::to_vec(&row) {
-                Ok(mut json_line) => {
-                    json_line.push(b'\n');
-                    Ok(json_line)
-                }
+        .scan(false, move |errored, row_result| {
+            if *errored {
+                return futures_util::future::ready(None);
+            }
+            let line: Vec<u8> = match row_result {
+                Ok(row) => match serde_json::to_vec(&row) {
+                    Ok(mut json_line) => {
+                        json_line.push(b'\n');
+                        json_line
+                    }
+                    Err(err) => {
+                        let err = ErrorResponse::from_error(err);
+                        tracing::error!(
+                            parent: &span,
+                            meta.signal_type = "log",
+                            event.domain = "ndc",
+                            event.name = "Relational stream serialization failure",
+                            name = "Relational stream serialization failure",
+                            body = %err,
+                            error = true,
+                        );
+                        *errored = true;
+                        err.to_relational_stream_error_frame()
+                    }
+                },
                 Err(err) => {
-                    let err = ErrorResponse::from_error(err);
                     tracing::error!(
                         parent: &span,
                         meta.signal_type = "log",
                         event.domain = "ndc",
-                        event.name = "Relational stream serialization failure",
-                        name = "Relational stream serialization failure",
+                        event.name = "Relational stream failure",
+                        name = "Relational stream failure",
                         body = %err,
                         error = true,
                     );
-                    Err(err)
+                    *errored = true;
+                    err.to_relational_stream_error_frame()
                 }
-            },
-            Err(err) => {
-                tracing::error!(
-                    parent: &span,
-                    meta.signal_type = "log",
-                    event.domain = "ndc",
-                    event.name = "Relational stream failure",
-                    name = "Relational stream failure",
-                    body = %err,
-                    error = true,
-                );
-                Err(err)
-            }
+            };
+            futures_util::future::ready(Some(Ok::<Vec<u8>, std::convert::Infallible>(line)))
         });
 
     Ok((
@@ -873,14 +888,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn relational_stream_route_propagates_stream_errors(
+    async fn relational_stream_route_emits_disjoint_error_frame(
     ) -> std::result::Result<(), Box<dyn Error + Send + Sync>> {
+        // A genuine error after a data row must be surfaced as a disjoint,
+        // tagged JSON-object frame appended after the emitted rows, and the
+        // stream must then end cleanly (HTTP 200, no truncation).
         let state = ServerState::new(
             (),
             TestSetup::<RelationalConnector> {
                 state: TestState {
                     relational_rows: vec![],
-                    stream_rows: vec![Ok(vec![json!(1)]), Err("stream failed".into())],
+                    stream_rows: vec![
+                        Ok(vec![json!(171), json!("Ben Harper")]),
+                        Err("stream failed".into()),
+                    ],
                 },
             },
             Registry::new(),
@@ -888,14 +909,77 @@ mod tests {
         let server =
             TestServer::new(create_router::<RelationalConnector>(state, None, None)).await?;
 
-        let error = server
+        let response = server
             .post_json("/query/relational/stream", &sample_relational_query())
             .send()
-            .await
-            .expect_err("stream transport should fail once the connector stream errors");
-        assert!(error.is_request());
+            .await?;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response.text().await?;
+        let mut lines = body.lines();
+
+        // The valid row `[171, "Ben Harper"]` is preserved verbatim as an array.
+        assert_eq!(lines.next().unwrap(), "[171,\"Ben Harper\"]");
+
+        // The error is a disjoint, tagged JSON object, never a `[status, message]`
+        // array.
+        let frame: serde_json::Value = serde_json::from_str(lines.next().unwrap())?;
+        assert!(frame.is_object(), "error frame must be a JSON object");
+        assert_eq!(frame["type"], json!("error"));
+        // The test connector maps stream errors to 502; the status is preserved
+        // in the frame rather than being flattened.
+        assert_eq!(frame["status"], json!(502));
+        assert_eq!(frame["message"], json!("stream failed"));
+        assert!(frame.get("details").is_some());
+
+        assert!(lines.next().is_none(), "no trailing frames after the error");
 
         Ok(())
+    }
+
+    #[test]
+    fn error_response_serializes_disjoint_stream_error_frame() {
+        // The frame is a JSON object (disjoint from array rows) with stable
+        // field names carrying status, message and details.
+        let err = ErrorResponse::new(
+            reqwest::StatusCode::CONFLICT,
+            "conflict error".to_string(),
+            json!({"table": "users"}),
+        );
+        let bytes = err.to_relational_stream_error_frame();
+        assert_eq!(*bytes.last().unwrap(), b'\n');
+        let frame: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            frame,
+            json!({
+                "type": "error",
+                "status": 409,
+                "message": "conflict error",
+                "details": {"table": "users"},
+            })
+        );
+    }
+
+    #[test]
+    fn relational_query_capabilities_expose_disjunct_streaming_error() {
+        // The connector-facing model exposes the `disjunct_streaming_error`
+        // capability with its stable serialization name. Optional fields absent
+        // from the JSON deserialize to `None`.
+        let caps: ndc_models::RelationalQueryCapabilities = serde_json::from_value(json!({
+            "project": {
+                "expression": {
+                    "conditional": {},
+                    "comparison": {},
+                    "scalar": {},
+                    "aggregate": {},
+                    "window": {}
+                }
+            },
+            "disjunct_streaming_error": {}
+        }))
+        .expect("capabilities with disjunct_streaming_error should deserialize");
+        assert!(caps.disjunct_streaming_error.is_some());
+        assert!(caps.streaming.is_none());
     }
 
     fn empty_capabilities() -> ndc_models::Capabilities {
