@@ -1302,7 +1302,7 @@ dependencies = [
 
 [[package]]
 name = "ndc-sdk"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -1336,7 +1336,7 @@ dependencies = [
 
 [[package]]
 name = "ndc-sdk-core"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "async-trait",
