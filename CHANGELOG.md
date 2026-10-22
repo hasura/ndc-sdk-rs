@@ -6,6 +6,9 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+- Require rustls-webpki 0.103.16+ for eMudhra intermediate SPKI distrust, including downstream SDK resolutions.
+- Require webpki-root-certs 1.0.10+ for the platform verifier's wasm32 bundled-root fallback.
+
 ## [0.9.0]
 
 - Added relational query and streaming query endpoints to the Rust SDK, including NDJSON stream responses and optional connector support defaults.
