@@ -56,3 +56,7 @@ To view trace information during local development you can run a Jaeger server v
 ```
 docker run --name jaeger -e COLLECTOR_OTLP_ENABLED=true -p 16686:16686 -p 4317:4317 -p 4318:4318 jaegertracing/all-in-one
 ```
+
+## TLS security
+
+See [TLS trust requirements](security/README.md) for runtime minimums and consumer rebuild requirements.

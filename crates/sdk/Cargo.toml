@@ -23,7 +23,13 @@ rustls = ["reqwest/rustls"]
 
 ndc-test = ["dep:ndc-test", "ndc-sdk-core/ndc-test"]
 
+# Security-only version floor: downstream SDK consumers do not use this repo's lockfile.
+[package.metadata.cargo-machete]
+ignored = ["rustls-webpki"]
+
 [dependencies]
+# Keep rustls's compatible verifier on the eMudhra SPKI-distrust release.
+rustls-webpki = "0.103.16"
 ndc-sdk-core = { path = "../sdk-core", default-features = false, features = ["axum"]}
 ndc-models = { workspace = true }
 ndc-test = { workspace = true, optional = true }
