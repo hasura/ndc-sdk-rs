@@ -6,6 +6,8 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+- Fix `NoHttpClient` tracing initialization failures when `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` by enabling only the asynchronous reqwest OTLP HTTP client.
+
 ## [0.9.1]
 
 - Require rustls-webpki 0.103.16+ for eMudhra intermediate SPKI distrust, including downstream SDK resolutions.
