@@ -7,6 +7,7 @@ This changelog documents the changes between release versions.
 Changes to be included in the next upcoming release
 
 - Fix `NoHttpClient` tracing initialization failures when `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` by enabling only the asynchronous reqwest OTLP HTTP client.
+- Update vulnerable Rust dependencies, including bytes, h2, OpenSSL, Quinn, rustls, time, Tokio, and the zstd compression stack. Raise direct bytes, Tokio, and anyhow minimum versions to patched releases, and remove the unmaintained rustls-pemfile dependency by updating reqwest 0.12.
 
 ## [0.9.1]
 

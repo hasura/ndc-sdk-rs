@@ -12,11 +12,11 @@ ndc-sdk-core = { path = "../sdk-core" }
 ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
 ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
 
-anyhow = "1"
+anyhow = "1.0.103"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["http2"] }
 axum-extra = "0.12"
-bytes = "1"
+bytes = "1.11.1"
 clap = { version = "4", features = ["derive", "env"] }
 http = "1"
 mime = "0.3"
@@ -52,7 +52,7 @@ semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "2"
-tokio = { version = "1", features = [
+tokio = { version = "1.53.3", features = [
   "fs",
   "macros",
   "rt-multi-thread",
