@@ -41,7 +41,7 @@ clap = { workspace = true, features = ["derive", "env"] }
 http = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry-http = { workspace = true }
-opentelemetry-otlp = { workspace = true, features = ["reqwest-client", "grpc-tonic", "gzip-tonic", "tls-ring", "tls-roots", "http-proto"] }
+opentelemetry-otlp = { workspace = true }
 opentelemetry-propagator-b3 = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true }
 opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
