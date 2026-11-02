@@ -49,7 +49,7 @@ pub fn init_tracing(
             opentelemetry::global::set_text_map_propagator(
                 opentelemetry::propagation::composite::TextMapCompositePropagator::new(vec![
                     Box::new(opentelemetry_sdk::propagation::TraceContextPropagator::new()),
-                    Box::new(opentelemetry_zipkin::Propagator::new()),
+                    Box::new(opentelemetry_propagator_b3::Propagator::new()),
                 ]),
             );
 

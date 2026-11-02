@@ -20,11 +20,11 @@ bytes = "1.11.1"
 clap = { version = "4", features = ["derive", "env"] }
 http = "1"
 mime = "0.3"
-opentelemetry = "0.31"
-opentelemetry-http = "0.31"
-# OTLP 0.31's default reqwest-blocking-client conflicts with reqwest-client,
+opentelemetry = "0.33"
+opentelemetry-http = "0.33"
+# OTLP's default reqwest-blocking-client conflicts with reqwest-client,
 # leaving HTTP exporters without a client. Preserve the other default features.
-opentelemetry-otlp = { version = "0.31", default-features = false, features = [
+opentelemetry-otlp = { version = "0.33", default-features = false, features = [
   "trace",
   "metrics",
   "logs",
@@ -32,13 +32,13 @@ opentelemetry-otlp = { version = "0.31", default-features = false, features = [
   "reqwest-client",
   "grpc-tonic",
   "gzip-tonic",
-  "tls",
+  "tls-ring",
   "tls-roots",
   "http-proto",
 ] }
-opentelemetry-semantic-conventions = "0.31"
-opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
-opentelemetry-zipkin = "0.31"
+opentelemetry-propagator-b3 = "0.33"
+opentelemetry-semantic-conventions = "0.33"
+opentelemetry_sdk = { version = "0.33", features = ["rt-tokio"] }
 prometheus = "0.14"
 # Adding the gzip/zstd features have the library send appropriate
 # Accept-Encoding and automatically decompress. As of this version it doesn't
@@ -69,7 +69,7 @@ tower-http = { version = "0.6", features = [
   "compression-zstd",
 ] }
 tracing = "0.1"
-tracing-opentelemetry = "0.32"
+tracing-opentelemetry = "0.34"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
   "env-filter",
