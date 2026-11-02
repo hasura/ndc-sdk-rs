@@ -24,7 +24,7 @@ be pinned to the same tag.
 
 ## Commands
 
-The toolchain is pinned in `rust-toolchain.toml` (Rust 1.91.1). A Nix dev
+The toolchain is pinned in `rust-toolchain.toml` (Rust 1.99.1). A Nix dev
 shell is available (`nix develop`, or direnv via `.envrc`).
 
 ```sh
