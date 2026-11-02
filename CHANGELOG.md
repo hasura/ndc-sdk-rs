@@ -4,6 +4,8 @@ This changelog documents the changes between release versions.
 
 ## [Unreleased]
 
+## [0.9.2]
+
 Changes to be included in the next upcoming release
 
 - Upgrade `ndc-models` and `ndc-test` together from NDC Spec v0.2.12 to v0.2.15. Relational `FirstValue`/`LastValue` now include optional `order_by`, their capabilities use `RelationalOrderedAggregateFunctionCapabilities`, and window expressions/capabilities include `Lag`/`Lead`. Connector code constructing or exhaustively matching these types may need updates. The models now use schemars 1.x and smol_str 0.3; the SDK toolchain remains Rust 1.89.0.
