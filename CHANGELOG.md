@@ -8,7 +8,7 @@ Changes to be included in the next upcoming release
 
 ## [0.9.2]
 
-- Upgrade `ndc-models` and `ndc-test` together from NDC Spec v0.2.12 to v0.2.15. Relational `FirstValue`/`LastValue` now include optional `order_by`, their capabilities use `RelationalOrderedAggregateFunctionCapabilities`, and window expressions/capabilities include `Lag`/`Lead`. Connector code constructing or exhaustively matching these types may need updates. The models now use schemars 1.x and smol_str 0.3; the SDK toolchain remains Rust 1.89.0.
+- Upgrade `ndc-models` and `ndc-test` together from NDC Spec v0.2.12 to v0.2.15. Relational `FirstValue`/`LastValue` now include optional `order_by`, their capabilities use `RelationalOrderedAggregateFunctionCapabilities`, and window expressions/capabilities include `Lag`/`Lead`. Connector code constructing or exhaustively matching these types may need updates. The models now use schemars 1.x and smol_str 0.3; the SDK toolchain remains Rust 1.91.1.
 - Fix `NoHttpClient` tracing initialization failures when `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. The OTLP exporter uses the blocking reqwest client, which is compatible with the batch span processor's background export thread.
 - Update vulnerable Rust dependencies, including bytes, h2, OpenSSL, Quinn, rustls, time, Tokio, and the zstd compression stack. Raise direct bytes, Tokio, and anyhow minimum versions to patched releases, and remove the unmaintained rustls-pemfile dependency by dropping the remaining transitive reqwest 0.12 dependency in favor of reqwest 0.13.
 - Upgrade OpenTelemetry crates to 0.33 and `tracing-opentelemetry` to 0.34. Replace the deprecated `opentelemetry-zipkin` crate with `opentelemetry-propagator-b3` for B3 header propagation (same multi-header encoding).

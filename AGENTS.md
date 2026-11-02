@@ -24,7 +24,7 @@ be pinned to the same tag.
 
 ## Commands
 
-The toolchain is pinned in `rust-toolchain.toml` (Rust 1.89.0). A Nix dev
+The toolchain is pinned in `rust-toolchain.toml` (Rust 1.91.1). A Nix dev
 shell is available (`nix develop`, or direnv via `.envrc`).
 
 ```sh
@@ -57,7 +57,7 @@ Changes must pass all of these (see `.github/workflows/`):
 - The build must not modify `Cargo.lock`. Commit lockfile changes together
   with the `Cargo.toml` changes that cause them.
 - `openssl` must not become a dependency of `ndc-sdk-core` (checked with
-  `cargo tree -i openssl --no-default-features -e no-dev`).
+  `cargo tree -p ndc-sdk-core --no-default-features -e no-dev --prefix none`).
 - `nix build` and `nix flake check` succeed.
 
 ## Dependencies
