@@ -342,6 +342,7 @@ where
         .layer(CompressionLayer::new().quality(tower_http::CompressionLevel::Precise(1)))
 }
 
+#[allow(clippy::result_large_err)]
 fn auth_handler(
     service_token_secret: Option<String>,
 ) -> impl Fn(&mut Request<Body>) -> std::result::Result<(), axum::response::Response> + Clone {

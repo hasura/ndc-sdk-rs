@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-package.version = "0.9.1"
+package.version = "0.9.2"
 package.edition = "2021"
 package.license = "Apache-2.0"
 
@@ -9,30 +9,32 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 ndc-sdk-core = { path = "../sdk-core" }
-ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
-ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.12" }
+ndc-models = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.16" }
+ndc-test = { git = "http://github.com/hasura/ndc-spec.git", tag = "v0.2.16" }
 
-anyhow = "1"
+anyhow = "1.0.103"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["http2"] }
 axum-extra = "0.12"
-bytes = "1"
+bytes = "1.11.1"
 clap = { version = "4", features = ["derive", "env"] }
 http = "1"
 mime = "0.3"
-opentelemetry = "0.31"
-opentelemetry-http = "0.31"
-opentelemetry-otlp = { version = "0.31", features = [
-  "reqwest-client",
+opentelemetry = "0.33"
+opentelemetry-http = "0.33"
+# Keep the default reqwest-blocking-client for OTLP/HTTP: the SDK's batch span
+# processor exports from its own thread without a Tokio runtime, so async HTTP
+# clients (reqwest-client, hyper-client) must not be enabled.
+opentelemetry-otlp = { version = "0.33", features = [
   "grpc-tonic",
   "gzip-tonic",
-  "tls",
+  "tls-ring",
   "tls-roots",
   "http-proto",
 ] }
-opentelemetry-semantic-conventions = "0.31"
-opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
-opentelemetry-zipkin = "0.31"
+opentelemetry-propagator-b3 = "0.33"
+opentelemetry-semantic-conventions = "0.33"
+opentelemetry_sdk = { version = "0.33", features = ["rt-tokio"] }
 prometheus = "0.14"
 # Adding the gzip/zstd features have the library send appropriate
 # Accept-Encoding and automatically decompress. As of this version it doesn't
@@ -46,7 +48,7 @@ semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 thiserror = "2"
-tokio = { version = "1", features = [
+tokio = { version = "1.53.3", features = [
   "fs",
   "macros",
   "rt-multi-thread",
@@ -63,7 +65,7 @@ tower-http = { version = "0.6", features = [
   "compression-zstd",
 ] }
 tracing = "0.1"
-tracing-opentelemetry = "0.32"
+tracing-opentelemetry = "0.34"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
   "env-filter",

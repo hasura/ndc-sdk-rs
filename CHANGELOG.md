@@ -6,6 +6,13 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release
 
+## [0.9.2]
+
+- Upgrade `ndc-models` and `ndc-test` together from NDC Spec v0.2.12 to v0.2.16. Relational `FirstValue`/`LastValue` now include optional `order_by`, their capabilities use `RelationalOrderedAggregateFunctionCapabilities`, and window expressions/capabilities include `Lag`/`Lead`. Relational query capabilities add optional `disjunct_streaming_error` and the models expose `RelationalQueryStreamError`; this dependency upgrade does not enable the capability or change the SDK's stream error behavior. Connector code constructing or exhaustively matching these types may need updates. The models now use schemars 1.x and smol_str 0.3; the SDK toolchain now uses Rust 1.99.1.
+- Fix `NoHttpClient` tracing initialization failures when `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. The OTLP exporter uses the blocking reqwest client, which is compatible with the batch span processor's background export thread.
+- Update vulnerable Rust dependencies, including bytes, h2, OpenSSL, Quinn, rustls, time, Tokio, and the zstd compression stack. Raise direct bytes, Tokio, and anyhow minimum versions to patched releases, and remove the unmaintained rustls-pemfile dependency by dropping the remaining transitive reqwest 0.12 dependency in favor of reqwest 0.13.
+- Upgrade OpenTelemetry crates to 0.33 and `tracing-opentelemetry` to 0.34. Replace the deprecated `opentelemetry-zipkin` crate with `opentelemetry-propagator-b3` for B3 header propagation (same multi-header encoding).
+
 ## [0.9.1]
 
 - Require rustls-webpki 0.103.16+ for eMudhra intermediate SPKI distrust, including downstream SDK resolutions.
